@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CorporateServiceDesk.Application\CorporateServiceDesk.Application.csproj" />
+    <ProjectReference Include="..\CorporateServiceDesk.Domain\CorporateServiceDesk.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
