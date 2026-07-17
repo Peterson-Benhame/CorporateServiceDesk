@@ -15,6 +15,22 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorporateServiceDesk.Applic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorporateServiceDesk.Infrastructure", "src\CorporateServiceDesk.Infrastructure\CorporateServiceDesk.Infrastructure.csproj", "{D522E88E-B48B-4F77-8BB6-349547E6B6C8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorporateServiceDesk.UnitTests", "tests\CorporateServiceDesk.UnitTests\CorporateServiceDesk.UnitTests.csproj", "{607F67E4-0B7F-47E1-9500-3535878D7CD7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{F8BD4316-1763-41DD-846D-D2572EAE6948}"
+	ProjectSection(SolutionItems) = preProject
+		docs\01-visao-do-produto.md = docs\01-visao-do-produto.md
+		docs\02-requisitos-do-mvp.md = docs\02-requisitos-do-mvp.md
+		docs\03-matriz-de-permissoes.md = docs\03-matriz-de-permissoes.md
+		docs\04-user-stories.md = docs\04-user-stories.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "adr", "adr", "{DBF90794-CF2B-463E-BD09-01743D52DCA4}"
+	ProjectSection(SolutionItems) = preProject
+		docs\adr\0001-arquitetura-inicial.md = docs\adr\0001-arquitetura-inicial.md
+		0002-Uso do PostgreSQL.md = 0002-Uso do PostgreSQL.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +53,10 @@ Global
 		{D522E88E-B48B-4F77-8BB6-349547E6B6C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D522E88E-B48B-4F77-8BB6-349547E6B6C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D522E88E-B48B-4F77-8BB6-349547E6B6C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{607F67E4-0B7F-47E1-9500-3535878D7CD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{607F67E4-0B7F-47E1-9500-3535878D7CD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{607F67E4-0B7F-47E1-9500-3535878D7CD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{607F67E4-0B7F-47E1-9500-3535878D7CD7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +66,8 @@ Global
 		{37A8B8D8-CD25-7E31-FF77-473AAB924722} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{51B5723F-0995-48E4-B9CB-79F37970C053} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{D522E88E-B48B-4F77-8BB6-349547E6B6C8} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{607F67E4-0B7F-47E1-9500-3535878D7CD7} = {BD3AE679-39EF-41CA-9A57-1CF47BBA478A}
+		{DBF90794-CF2B-463E-BD09-01743D52DCA4} = {F8BD4316-1763-41DD-846D-D2572EAE6948}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {97489CDF-3075-473A-BD01-E24A67364ADC}
