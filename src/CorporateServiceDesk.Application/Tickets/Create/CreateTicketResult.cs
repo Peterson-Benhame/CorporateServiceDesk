@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CorporateServiceDesk.Domain.Tickets.Enums;
 
 namespace CorporateServiceDesk.Application.Tickets.Create
 {
-    internal class CreateTicketResult
-    {
-    }
+    public sealed record CreateTicketResult(
+    Guid Id,
+    string Title,
+    TicketStatus Status,
+    DateTimeOffset OpenedAtUtc);
+
 }

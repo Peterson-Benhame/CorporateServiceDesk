@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CorporateServiceDesk.Domain.Tickets.Enums;
 
 namespace CorporateServiceDesk.Application.Tickets.Create
 {
-    internal class CreateTicketCommand
-    {
-    }
+    public sealed record CreateTicketCommand(
+    string Title,
+    string Description,
+    Guid RequesterId,
+    TicketPriority Priority);
 }

@@ -1,8 +1,14 @@
 ﻿namespace CorporateServiceDesk.UnitTests.Domain
 {
-    public sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    public sealed class TestTimeProvider : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => utcNow;
-    }
+        private readonly DateTimeOffset _utcNow;
 
+        public TestTimeProvider(DateTimeOffset utcNow)
+        {
+            _utcNow = utcNow;
+        }
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+    }
 }

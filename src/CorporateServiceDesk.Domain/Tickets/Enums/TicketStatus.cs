@@ -5,6 +5,8 @@
         Open = 1,
         InProgress = 2,
         Resolved = 3,
-        Closed = 4
+        Waiting = 4,
+        Closed = 5,
+        Cancelled = 6
     }
 }
