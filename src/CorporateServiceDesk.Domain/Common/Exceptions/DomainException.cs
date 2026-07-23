@@ -1,4 +1,4 @@
-﻿namespace CorporateServiceDesk.Domain.Tickets.Exceptions
+﻿namespace CorporateServiceDesk.Domain.Common.Common
 {
     public sealed class DomainException : Exception
     {

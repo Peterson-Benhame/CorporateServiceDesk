@@ -10,37 +10,48 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
     {
         builder.ToTable("tickets");
 
-        builder.HasKey(ticket => ticket.Id);
+        builder.HasKey(x => x.Id);
 
-        builder.Property(ticket => ticket.Id)
+        builder.Property(x => x.Id)
             .HasColumnName("id")
             .ValueGeneratedNever();
 
-        builder.Property(ticket => ticket.Title)
+        builder.Property(x => x.Title)
             .HasColumnName("title")
+            .HasMaxLength(160)
             .IsRequired();
 
-        builder.Property(ticket => ticket.Description)
+        builder.Property(x => x.Description)
             .HasColumnName("description")
+            .HasMaxLength(4000)
             .IsRequired();
 
-        builder.Property(ticket => ticket.RequesterId)
+        builder.Property(x => x.RequesterId)
             .HasColumnName("requester_id")
             .IsRequired();
 
-        builder.Property(ticket => ticket.Priority)
-            .HasColumnName("priority")
-            .HasConversion<int>()
+        builder.Property(x => x.AssigneeId)
+            .HasColumnName("assignee_id");
+
+        builder.Property(x => x.Priority)
+            .HasColumnName("priority").
+            HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.Status)
+            .HasColumnName("status").HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.OpenedAtUtc)
+            .HasColumnName("opened_at_utc")
             .IsRequired();
 
-        builder.Property(ticket => ticket.Status)
-            .HasColumnName("status")
-            .HasConversion<int>()
-            .IsRequired();
+        builder.Property(x => x.ClosedAtUtc)
+            .HasColumnName("closed_at_utc");
 
-        builder.Property(ticket => ticket.CreatedAt)
-            .HasColumnName("created_at")
-            .HasColumnType("timestamp with time zone")
-            .IsRequired();
+        builder.HasIndex(x => new { x.Status, x.OpenedAtUtc });
+        builder.HasIndex(x => x.RequesterId);
+        builder.HasIndex(x => x.AssigneeId);
     }
+
 }

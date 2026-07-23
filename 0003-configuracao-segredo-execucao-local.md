@@ -16,6 +16,8 @@ Execute:
 
 ```powershell
 dotnet user-secrets init --project src/CorporateServiceDesk.Api
+
+Case deseje remover dotnet user-secrets remove "ConnectionStrings:DefaultConnection" --project src/CorporateServiceDesk.Api
 ```
 
 Esse comando adiciona um `UserSecretsId` ao `.csproj` da API.
@@ -663,7 +665,7 @@ Ela foi armazenada no User Secrets:
 
 ```powershell
 dotnet user-secrets set `
-  "ConnectionStrings:DefaultConnection" `
+ "ConnectionStrings:DefaultConnection" `
   "Host=127.0.0.1;Port=55432;Database=corporate_service_desk;Username=corporate_service_desk;Password=SENHA_LOCAL" `
   --project .\src\CorporateServiceDesk.Api\CorporateServiceDesk.Api.csproj
 ```
