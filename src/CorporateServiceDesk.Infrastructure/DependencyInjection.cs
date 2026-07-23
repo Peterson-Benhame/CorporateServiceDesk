@@ -1,5 +1,8 @@
 ﻿using CorporateServiceDesk.Application.Common.Abstractions.Persistence;
+using CorporateServiceDesk.Application.Tickets.Abstractions;
+using CorporateServiceDesk.Infrastructure.Persistence;
 using CorporateServiceDesk.Infrastructure.Persistence.Contexts;
+using CorporateServiceDesk.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +23,15 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork>(serviceProvider =>
             serviceProvider.GetRequiredService<ApplicationDbContext>());
+
+        services.AddRepositories();
+
+        return services;
+    }
+
+    private static IServiceCollection AddRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<ITicketRepository, TicketRepository>();
 
         return services;
     }

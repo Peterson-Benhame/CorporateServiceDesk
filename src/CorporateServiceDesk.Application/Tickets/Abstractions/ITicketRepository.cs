@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CorporateServiceDesk.Application.Common.Abstractions.Persistence;
+using CorporateServiceDesk.Domain.Tickets.Entities;
 
 namespace CorporateServiceDesk.Application.Tickets.Abstractions
 {
-    internal interface ITicketRepository
+    public interface ITicketRepository : IRepositoryBase<Ticket>
     {
+        Task<Ticket?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+        Task<bool> ExistsByTitleForRequesterAsync(Guid requesterId, string title, CancellationToken cancellationToken);
     }
+
 }

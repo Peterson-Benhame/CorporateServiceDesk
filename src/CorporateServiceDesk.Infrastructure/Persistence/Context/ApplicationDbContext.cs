@@ -22,8 +22,10 @@ public sealed class ApplicationDbContext : DbContext, IUnitOfWork
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
 
-    protected override void OnModelCreating(
-        ModelBuilder modelBuilder)
+    public Task<int> CommitAsync(CancellationToken cancellationToken = default)
+        => SaveChangesAsync(cancellationToken);
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
