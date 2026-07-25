@@ -1,5 +1,5 @@
 ﻿using CorporateServiceDesk.Application.Common.Abstractions.Persistence;
-using CorporateServiceDesk.Application.Common.Exceptions;
+using CorporateServiceDesk.Application.Common.Abstractions.Notifications;
 using CorporateServiceDesk.Application.Tickets.Abstractions;
 using CorporateServiceDesk.Application.Tickets.Create;
 using CorporateServiceDesk.Domain.Tickets.Entities;
@@ -24,9 +24,13 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
 
             var result = await useCase.ExecuteAsync(command, CancellationToken.None);
 
-            Assert.Equal(TicketStatus.Open, result.Status);
-            Assert.Equal(now, result.OpenedAtUtc);
-            Assert.Equal("VPN unavailable", result.Title);
+            Assert.True(result.IsSuccess);
+            Assert.NotNull(result.Value);
+            Assert.Null(result.Error);
+            Assert.Equal(EnumErrorType.Created, result.ErrorType);
+            Assert.Equal(TicketStatus.Open, result.Value.Status);
+            Assert.Equal(now, result.Value.OpenedAtUtc);
+            Assert.Equal("VPN unavailable", result.Value.Title);
 
             repository.Verify(x => x.AddAsync(
                 It.Is<Ticket>(ticket =>
@@ -51,7 +55,9 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
 
             var result = await useCase.ExecuteAsync(command, CancellationToken.None);
 
-            Assert.Equal("VPN unavailable", result.Title);
+            Assert.True(result.IsSuccess);
+            Assert.NotNull(result.Value);
+            Assert.Equal("VPN unavailable", result.Value.Title);
 
             repository.Verify(x => x.ExistsByTitleForRequesterAsync(
                 requesterId,
@@ -66,7 +72,7 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
         }
 
         [Fact]
-        public async Task ExecuteAsync_ShouldThrowConflictException_WhenDuplicateTicketExists()
+        public async Task ExecuteAsync_ShouldReturnConflictFailure_WhenDuplicateTicketExists()
         {
             var repository = new Mock<ITicketRepository>();
             var unitOfWork = new Mock<IUnitOfWork>();
@@ -83,10 +89,12 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
 
             var useCase = new CreateTicketUseCase(repository.Object, unitOfWork.Object, timeProvider);
 
-            var exception = await Assert.ThrowsAsync<ConflictException>(() =>
-                useCase.ExecuteAsync(command, CancellationToken.None));
+            var result = await useCase.ExecuteAsync(command, CancellationToken.None);
 
-            Assert.Equal("A similar open ticket already exists for this requester.", exception.Message);
+            Assert.False(result.IsSuccess);
+            Assert.Null(result.Value);
+            Assert.Equal(EnumErrorType.Conflict, result.ErrorType);
+            Assert.Equal("A similar open ticket already exists for this requester.", result.Error);
         }
 
         [Fact]
@@ -107,8 +115,10 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
 
             var useCase = new CreateTicketUseCase(repository.Object, unitOfWork.Object, timeProvider);
 
-            await Assert.ThrowsAsync<ConflictException>(() =>
-                useCase.ExecuteAsync(command, CancellationToken.None));
+            var result = await useCase.ExecuteAsync(command, CancellationToken.None);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(EnumErrorType.Conflict, result.ErrorType);
 
             repository.Verify(x => x.AddAsync(
                 It.IsAny<Ticket>(),
@@ -133,10 +143,12 @@ namespace CorporateServiceDesk.Application.UnitTests.Tickets
 
             var result = await useCase.ExecuteAsync(command, CancellationToken.None);
 
-            Assert.NotEqual(Guid.Empty, result.Id);
-            Assert.Equal("Printer unavailable", result.Title);
-            Assert.Equal(TicketStatus.Open, result.Status);
-            Assert.Equal(now, result.OpenedAtUtc);
+            Assert.True(result.IsSuccess);
+            Assert.NotNull(result.Value);
+            Assert.NotEqual(Guid.Empty, result.Value.Id);
+            Assert.Equal("Printer unavailable", result.Value.Title);
+            Assert.Equal(TicketStatus.Open, result.Value.Status);
+            Assert.Equal(now, result.Value.OpenedAtUtc);
         }
 
         [Fact]

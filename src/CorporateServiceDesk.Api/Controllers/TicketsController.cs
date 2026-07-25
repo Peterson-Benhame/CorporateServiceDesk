@@ -1,5 +1,7 @@
 ﻿using CorporateServiceDesk.Api.Contracts.Tickets.Request;
 using CorporateServiceDesk.Api.Contracts.Tickets.Response;
+using CorporateServiceDesk.Api.Helpers;
+using CorporateServiceDesk.Application.Common.Abstractions.Notifications;
 using CorporateServiceDesk.Application.Tickets.Create;
 using CorporateServiceDesk.Application.Tickets.Queries;
 using Microsoft.AspNetCore.Mvc;
@@ -43,14 +45,20 @@ namespace CorporateServiceDesk.Api.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(CreateTicketResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<CreateTicketResponse>> Create([FromBody] CreateTicketRequest request, [FromServices] CreateTicketUseCase useCase, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] CreateTicketRequest request, [FromServices] CreateTicketUseCase useCase, CancellationToken cancellationToken)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             var command = new CreateTicketCommand(request.Title, request.Description, request.RequesterId, request.Priority);
             var result = await useCase.ExecuteAsync(command, cancellationToken);
 
-            var response = CreateTicketResponseMapper.Map(result);
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, response);
+            Result<CreateTicketResponse> responseResult = result.Map(CreateTicketResponseMapper.Map);
+
+            return ApiResponseHandler.GenerateResponse(responseResult, this,  nameof(GetById), new { id = result.Value?.Id });
         }
 
         /// <summary>
@@ -73,12 +81,24 @@ namespace CorporateServiceDesk.Api.Controllers
         /// <response code="200">Chamado localizado com sucesso.</response>
         /// <response code="404">Chamado não encontrado.</response>
         [HttpGet("{id:guid}", Name = nameof(GetById))]
-        public async Task<ActionResult<QueryTicketDetailsResponse>> GetById(Guid id, [FromServices] QueryGetTicketByIdUseCase useCase, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetById(Guid id, [FromServices] QueryGetTicketByIdUseCase useCase, CancellationToken cancellationToken)
         {
-            var ticket = await useCase.ExecuteAsync(id, cancellationToken);
-            var response = QueryTicketDetailsResponseMapper.Map(ticket);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return Ok(response);
+            var ticket = await useCase.ExecuteAsync(id, cancellationToken);
+
+            if (!ticket.IsSuccess)
+            {
+                return ApiResponseHandler.GenerateResponse(ticket, this, nameof(GetById), new { id });
+            }
+
+            Result<QueryTicketDetailsResponse> responseResult = ticket.Map(QueryTicketDetailsResponseMapper.Map);
+
+            return ApiResponseHandler.GenerateResponse(responseResult, this);
         }
     }
 }
+

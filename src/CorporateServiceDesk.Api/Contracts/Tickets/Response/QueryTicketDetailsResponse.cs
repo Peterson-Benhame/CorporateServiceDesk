@@ -15,6 +15,7 @@ namespace CorporateServiceDesk.Api.Contracts.Tickets.Response
                     TicketStatus Status,
                     DateTimeOffset OpenedAtUtc,
                     DateTimeOffset? ClosedAtUtc);
+
     internal static class QueryTicketDetailsResponseMapper
     {
         public static QueryTicketDetailsResponse Map(QueryTicketDetailsResult result)

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CorporateServiceDesk.Api\CorporateServiceDesk.Api.csproj" />
     <ProjectReference Include="..\..\src\CorporateServiceDesk.Application\CorporateServiceDesk.Application.csproj" />
     <ProjectReference Include="..\..\src\CorporateServiceDesk.Domain\CorporateServiceDesk.Domain.csproj" />
   </ItemGroup>
