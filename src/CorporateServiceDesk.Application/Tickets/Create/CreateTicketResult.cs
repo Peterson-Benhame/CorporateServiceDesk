@@ -10,5 +10,4 @@ namespace CorporateServiceDesk.Application.Tickets.Create
         TicketPriority Priority,
         TicketStatus Status,
         DateTimeOffset OpenedAtUtc);
-
 }

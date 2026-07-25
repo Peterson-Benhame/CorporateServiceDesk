@@ -1,6 +1,7 @@
 ﻿using CorporateServiceDesk.Api.Contracts.Tickets.Request;
 using CorporateServiceDesk.Api.Contracts.Tickets.Response;
 using CorporateServiceDesk.Application.Tickets.Create;
+using CorporateServiceDesk.Application.Tickets.Queries;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CorporateServiceDesk.Api.Controllers
@@ -53,30 +54,31 @@ namespace CorporateServiceDesk.Api.Controllers
         }
 
         /// <summary>
-        /// Obtém um chamado pelo seu identificador.
+        /// Obtém os detalhes de um chamado pelo identificador.
         /// </summary>
         /// <remarks>
-        /// Localiza um chamado utilizando o identificador informado na rota.
-        /// 
-        /// Este endpoint também é utilizado pelo método de criação para gerar o
-        /// cabeçalho <c>Location</c> da resposta HTTP 201 por meio do
-        /// <see cref="CreatedAtActionResult"/>.
-        /// 
-        /// Atualmente, a consulta ainda não foi implementada e o endpoint retorna
-        /// HTTP 501.
+        /// Localiza o chamado correspondente ao identificador informado na rota e
+        /// retorna seus dados detalhados.
+        ///
+        /// Este endpoint também é utilizado pelo método de criação para preencher o
+        /// cabeçalho HTTP <c>Location</c> da resposta 201 Created.
         /// </remarks>
-        /// <param name="id">
-        /// Identificador único do chamado.
-        /// </param>
+        /// <param name="id">Identificador único do chamado.</param>
+        /// <param name="useCase">Caso de uso responsável por consultar o chamado.</param>
+        /// <param name="cancellationToken">Token para cancelamento da operação.</param>
         /// <returns>
-        /// Retorna HTTP 200 com os dados do chamado quando encontrado.
-        /// Retorna HTTP 404 quando não existir um chamado com o identificador informado.
-        /// Enquanto a implementação não estiver disponível, retorna HTTP 501.
+        /// Retorna HTTP 200 com os dados do chamado quando localizado ou HTTP 404
+        /// quando não existir um chamado com o identificador informado.
         /// </returns>
         /// <response code="200">Chamado localizado com sucesso.</response>
         /// <response code="404">Chamado não encontrado.</response>
-        /// <response code="501">Consulta ainda não implementada.</response>
         [HttpGet("{id:guid}", Name = nameof(GetById))]
-        public IActionResult GetById(Guid id) => StatusCode(StatusCodes.Status501NotImplemented, new { id });
+        public async Task<ActionResult<QueryTicketDetailsResponse>> GetById(Guid id, [FromServices] QueryGetTicketByIdUseCase useCase, CancellationToken cancellationToken)
+        {
+            var ticket = await useCase.ExecuteAsync(id, cancellationToken);
+            var response = QueryTicketDetailsResponseMapper.Map(ticket);
+
+            return Ok(response);
+        }
     }
 }

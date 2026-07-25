@@ -1,11 +1,12 @@
-﻿using CorporateServiceDesk.Application.Common.Abstractions.Persistence;
+﻿using CorporateServiceDesk.Application.Common.Abstractions;
+using CorporateServiceDesk.Application.Common.Abstractions.Persistence;
 using CorporateServiceDesk.Application.Common.Exceptions;
 using CorporateServiceDesk.Application.Tickets.Abstractions;
 using CorporateServiceDesk.Domain.Tickets.Entities;
 
 namespace CorporateServiceDesk.Application.Tickets.Create
 {
-    public sealed class CreateTicketUseCase(ITicketRepository ticketRepository, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+    public sealed class CreateTicketUseCase(ITicketRepository ticketRepository, IUnitOfWork unitOfWork, TimeProvider timeProvider) : IUseCase
     {
         public async Task<CreateTicketResult> ExecuteAsync(CreateTicketCommand command, CancellationToken cancellationToken)
         {
