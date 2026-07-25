@@ -2,76 +2,72 @@
 
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4)
-![Docker](https://img.shields.io/badge/Docker-Suportado-2496ED)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
+![Entity Framework Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)
+![Docker](https://img.shields.io/badge/Docker-suportado-2496ED)
+![Tests](https://img.shields.io/badge/testes-22%20aprovados-success)
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
-API corporativa de referência para gerenciamento de chamados internos.
+API REST para centralizar a abertura, o acompanhamento e o atendimento de chamados internos de uma organização.
 
-O projeto está sendo desenvolvido como um laboratório de Engenharia de Software e item de portfólio, com foco em organização, segurança, testabilidade, documentação e decisões arquiteturais conscientes.
+O projeto é desenvolvido como laboratório de Engenharia de Software e item de portfólio. Seu foco não está apenas em entregar endpoints, mas em demonstrar modelagem de domínio, separação de responsabilidades, persistência, testabilidade, segurança e evolução arquitetural consciente.
 
-> O objetivo não é construir um sistema enorme. O objetivo é demonstrar como estruturar e evoluir uma API corporativa de forma profissional.
+> O objetivo é construir um monólito modular, simples de executar e preparado para evoluir sem acoplar as regras de negócio ao framework ou ao banco de dados.
+
+---
+
+## Visão geral
+
+Em muitas empresas, solicitações internas ainda são registradas por e-mail, mensagens ou conversas informais. Esse processo dificulta a definição de responsabilidades, o acompanhamento do atendimento, a consulta ao histórico e a geração de indicadores.
+
+A Corporate Service Desk API propõe uma base centralizada para esse fluxo e poderá atender interfaces web, aplicações móveis e integrações corporativas.
+
+### O que o projeto demonstra
+
+- desenvolvimento de APIs REST com ASP.NET Core;
+- arquitetura em camadas com dependências orientadas ao domínio;
+- casos de uso explícitos para escrita e leitura;
+- domínio com comportamento e invariantes;
+- persistência com Entity Framework Core e PostgreSQL;
+- aplicação dos padrões Repository e Unit of Work;
+- injeção de dependência e baixo acoplamento;
+- testes unitários de domínio e aplicação;
+- documentação OpenAPI/Swagger;
+- execução em containers;
+- registro de decisões arquiteturais por ADR.
 
 ---
 
 ## Status do projeto
 
-O projeto está em desenvolvimento incremental.
+O projeto está em desenvolvimento incremental. O primeiro fluxo vertical de chamados, da API até o PostgreSQL, já foi implementado.
 
-### Implementado e validado
+### Implementado
 
-- [x] Solution .NET 8;
-- [x] ASP.NET Core Web API com Controllers;
-- [x] Swagger/OpenAPI;
-- [x] Estrutura física com diretórios `src` e `tests`;
-- [x] Projeto `Domain`;
-- [x] Projeto `Application`;
-- [x] Referência `Application → Domain`;
-- [x] Nullable Reference Types;
-- [x] Suporte inicial a Docker;
-- [x] Compilação da solution;
-- [x] Execução da API em container;
-- [x] Smoke test HTTP com resposta `200 OK`.
+- [x] solução em .NET 8 organizada em `src` e `tests`;
+- [x] API com Controllers e contratos HTTP próprios;
+- [x] abertura de chamado com resposta `201 Created`;
+- [x] consulta de chamado por identificador;
+- [x] entidade `Ticket` com regras de abertura, atribuição, resolução e encerramento;
+- [x] prevenção de chamados ativos duplicados por título e solicitante;
+- [x] Entity Framework Core com provedor Npgsql;
+- [x] PostgreSQL e migration inicial;
+- [x] Repository e Unit of Work;
+- [x] Swagger/OpenAPI com comentários XML;
+- [x] serialização textual de enums;
+- [x] Dockerfile multi-stage;
+- [x] testes unitários com xUnit e Moq;
+- [x] 22 testes automatizados aprovados.
 
-### Em andamento
+### Próximas entregas
 
-- [ ] Criação da camada `Infrastructure`;
-- [ ] Definição do primeiro fluxo funcional de chamados;
-- [ ] Modelagem inicial do domínio.
-
----
-
-## Problema
-
-Em muitas empresas, solicitações internas são registradas por e-mail, mensagens ou conversas informais.
-
-Esse modelo dificulta:
-
-- acompanhar o andamento das solicitações;
-- definir responsabilidades;
-- localizar chamados antigos;
-- registrar decisões e comentários;
-- controlar o acesso às informações;
-- medir o processo de atendimento.
-
-A Corporate Service Desk API pretende centralizar esse fluxo e fornecer uma base para interfaces web, aplicativos ou integrações corporativas.
-
----
-
-## Objetivo
-
-Construir uma API REST em .NET 8 que demonstre:
-
-- separação de responsabilidades;
-- arquitetura em camadas;
-- regras de negócio protegidas;
-- autenticação e autorização;
-- persistência com Entity Framework Core;
-- consultas paginadas e filtradas;
-- tratamento padronizado de erros;
-- logs estruturados;
-- testes automatizados;
-- execução em containers;
-- integração contínua.
+- [ ] tratamento global de exceções com Problem Details;
+- [ ] autenticação e autorização;
+- [ ] endpoints para atribuir, resolver e encerrar chamados;
+- [ ] listagem paginada com filtros e ordenação;
+- [ ] comentários e histórico do chamado;
+- [ ] testes de integração;
+- [ ] logs estruturados, health checks e pipeline de CI.
 
 ---
 
@@ -114,7 +110,9 @@ Responsabilidades previstas:
 
 ---
 
-## Escopo funcional planejado
+## Escopo planejado
+
+As listas abaixo representam o escopo funcional e técnico pretendido. O estado de cada entrega é acompanhado na seção [Status do projeto](#status-do-projeto).
 
 ### Autenticação e autorização
 
@@ -161,639 +159,433 @@ Responsabilidades previstas:
 
 ---
 
-## Fora do escopo inicial
-
-Os seguintes recursos não fazem parte do primeiro MVP:
-
-- anexos;
-- envio de e-mails;
-- notificações em tempo real;
-- dashboards;
-- relatórios avançados;
-- SLA;
-- múltiplas empresas ou tenants;
-- login social;
-- Active Directory;
-- recuperação de senha;
-- refresh tokens;
-- mensageria;
-- microsserviços.
-
-Esses itens poderão ser avaliados posteriormente conforme necessidades reais.
-
----
-
 ## Arquitetura
 
-O projeto utiliza uma arquitetura em camadas com dependências direcionadas para o núcleo da aplicação.
-
-### Arquitetura-alvo
+O sistema é um **monólito modular organizado em camadas**, inspirado nos princípios de Clean Architecture. As dependências de código apontam para o núcleo da aplicação: o domínio não conhece ASP.NET Core, Entity Framework Core, PostgreSQL ou detalhes de entrega.
 
 ```mermaid
-flowchart TD
-    API[CorporateServiceDesk.Api]
-    APP[CorporateServiceDesk.Application]
-    DOMAIN[CorporateServiceDesk.Domain]
-    INFRA[CorporateServiceDesk.Infrastructure]
-    DB[(Banco de dados)]
-
-    API --> APP
-    API --> INFRA
+flowchart LR
+    Client[Cliente HTTP] --> API[API]
+    API --> APP[Application]
+    API --> INFRA[Infrastructure]
     INFRA --> APP
+    APP --> DOMAIN[Domain]
     INFRA --> DOMAIN
-    APP --> DOMAIN
-    INFRA --> DB
+    INFRA --> DB[(PostgreSQL)]
 ```
 
-### Regra de dependência
-
-As camadas externas podem depender das camadas internas.
-
-As camadas internas não devem conhecer detalhes de frameworks, bancos de dados ou mecanismos de entrega.
+### Direção das dependências
 
 ```text
-Api → Application
-Api → Infrastructure
+Api              → Application
+Api              → Infrastructure
+Infrastructure   → Application
+Infrastructure   → Domain
+Application      → Domain
+Domain           → nenhuma camada do sistema
+```
 
-Infrastructure → Application
-Infrastructure → Domain
+### Responsabilidade das camadas
 
-Application → Domain
+| Camada | Responsabilidade |
+| --- | --- |
+| `CorporateServiceDesk.Domain` | Entidades, enums, invariantes e transições de estado do negócio. Não depende das demais camadas. |
+| `CorporateServiceDesk.Application` | Casos de uso, comandos, resultados, exceções de aplicação e abstrações de persistência. |
+| `CorporateServiceDesk.Infrastructure` | EF Core, `DbContext`, mapeamentos, migrations e implementações dos repositórios. |
+| `CorporateServiceDesk.Api` | Controllers, contratos HTTP, mapeamento de respostas, Swagger e composição das dependências. |
 
-Domain → nenhuma camada do sistema
+### Fluxo de uma requisição
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A as TicketsController
+    participant U as Caso de uso
+    participant D as Ticket
+    participant R as TicketRepository
+    participant P as PostgreSQL
+
+    C->>A: POST /api/tickets
+    A->>U: CreateTicketCommand
+    U->>R: verifica duplicidade
+    R->>P: consulta chamados ativos
+    U->>D: Ticket.Open(...)
+    U->>R: adiciona entidade
+    R->>P: CommitAsync()
+    U-->>A: CreateTicketResult
+    A-->>C: 201 Created + Location
 ```
 
 ---
 
-## Responsabilidade das camadas
+## Padrões e decisões de design
 
-### CorporateServiceDesk.Domain
+### Use Case
 
-Contém o núcleo das regras de negócio.
+Cada operação da aplicação é representada por uma classe dedicada, como `CreateTicketUseCase` e `QueryGetTicketByIdUseCase`. O Controller fica responsável pelo protocolo HTTP, enquanto o caso de uso coordena domínio e persistência.
 
-Responsabilidades previstas:
+### Command e Result
 
-- entidades;
-- objetos de valor;
-- enums de negócio;
-- invariantes;
-- transições de estado;
-- exceções de domínio;
-- eventos de domínio, quando necessários.
+Os dados de entrada e saída da camada de aplicação são representados por records imutáveis, por exemplo `CreateTicketCommand` e `CreateTicketResult`. Os contratos HTTP permanecem na API e são mapeados explicitamente.
 
-O projeto `Domain` não deve depender de:
+> Há separação entre operações de escrita e leitura, mas o projeto não utiliza uma implementação completa de CQRS nem depende de MediatR.
 
-- ASP.NET Core;
-- Entity Framework Core;
-- banco de dados;
-- JWT;
-- Swagger;
-- `HttpContext`;
-- `DbContext`;
-- implementações externas.
+### Repository
 
-### CorporateServiceDesk.Application
+`ITicketRepository` define as operações de persistência necessárias ao caso de uso. A implementação com EF Core fica na Infrastructure, mantendo a Application independente do provedor de banco.
 
-Contém os casos de uso da aplicação.
+### Unit of Work
 
-Responsabilidades previstas:
+`IUnitOfWork` delimita a confirmação das alterações. O `ApplicationDbContext` implementa esse contrato e executa o `SaveChangesAsync` por meio de `CommitAsync`.
 
-- comandos e consultas;
-- casos de uso;
-- contratos internos;
-- interfaces para dependências externas;
-- DTOs de aplicação;
-- paginação;
-- orquestração;
-- validações relacionadas aos casos de uso.
+### Rich Domain Model
 
-A camada `Application` conhece o `Domain`, mas não conhece implementações de infraestrutura.
+A entidade `Ticket` protege as próprias invariantes e transições. Um chamado:
 
-### CorporateServiceDesk.Infrastructure
+- nasce com status `Open`;
+- exige identificadores, título, descrição e prioridade válidos;
+- muda para `InProgress` ao ser atribuído;
+- só pode ser resolvido quando está em atendimento;
+- só pode ser encerrado quando está resolvido;
+- registra o horário UTC do encerramento.
 
-Camada planejada para os detalhes técnicos.
+### Dependency Injection
 
-Responsabilidades previstas:
+Dependências são registradas no ponto de composição da API. Casos de uso marcados por `IUseCase` são descobertos por reflexão, enquanto repositórios, `DbContext`, `IUnitOfWork` e `TimeProvider` são registrados com seus ciclos de vida apropriados.
 
-- Entity Framework Core;
-- `DbContext`;
-- configurações de entidades;
-- migrations;
-- persistência;
-- implementação de repositórios;
-- geração de JWT;
-- hash de senhas;
-- integrações externas.
+### Dependency Inversion
 
-Essa camada ainda será criada.
-
-### CorporateServiceDesk.Api
-
-Ponto de entrada HTTP e ponto de composição da aplicação.
-
-Responsabilidades:
-
-- controllers;
-- contratos HTTP;
-- model binding;
-- autenticação;
-- autorização;
-- Swagger;
-- configuração de middlewares;
-- registro das dependências;
-- serialização;
-- respostas HTTP.
-
-Regras de negócio não devem ser implementadas nos controllers ou no `Program.cs`.
+A Application declara interfaces como `ITicketRepository` e `IUnitOfWork`; a Infrastructure fornece as implementações. Assim, os casos de uso dependem de abstrações e podem ser testados sem banco de dados.
 
 ---
 
-## Estrutura atual
+## Modelo de domínio atual
 
-```text
-CorporateServiceDesk/
-├── CorporateServiceDesk.sln
-├── README.md
-├── src/
-│   ├── CorporateServiceDesk.Api/
-│   │   ├── Controllers/
-│   │   ├── Properties/
-│   │   ├── Dockerfile
-│   │   ├── Program.cs
-│   │   └── CorporateServiceDesk.Api.csproj
-│   │
-│   ├── CorporateServiceDesk.Application/
-│   │   └── CorporateServiceDesk.Application.csproj
-│   │
-│   └── CorporateServiceDesk.Domain/
-│       └── CorporateServiceDesk.Domain.csproj
-│
-└── tests/
+### Ticket
+
+| Propriedade | Tipo | Regra |
+| --- | --- | --- |
+| `Id` | `Guid` | Gerado na abertura e diferente de vazio |
+| `Title` | `string` | Obrigatório, normalizado e limitado a 160 caracteres |
+| `Description` | `string` | Obrigatória, normalizada e limitada a 4.000 caracteres na persistência/API |
+| `RequesterId` | `Guid` | Identifica o solicitante |
+| `AssigneeId` | `Guid?` | Preenchido quando um atendente assume o chamado |
+| `Priority` | `TicketPriority` | `Low`, `Medium`, `High` ou `Critical` |
+| `Status` | `TicketStatus` | Estado atual do chamado |
+| `OpenedAtUtc` | `DateTimeOffset` | Instante UTC de abertura |
+| `ClosedAtUtc` | `DateTimeOffset?` | Preenchido no encerramento |
+
+### Ciclo de vida implementado no domínio
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open: Open()
+    Open --> InProgress: AssignTo()
+    InProgress --> InProgress: AssignTo() / reatribuição
+    InProgress --> Resolved: Resolve()
+    Resolved --> Closed: Close()
 ```
 
-### Estrutura planejada
+Os enums também reservam os estados `Waiting` e `Cancelled`, que ainda não possuem transições implementadas na entidade.
 
-```text
-CorporateServiceDesk/
-├── src/
-│   ├── CorporateServiceDesk.Api/
-│   ├── CorporateServiceDesk.Application/
-│   ├── CorporateServiceDesk.Domain/
-│   └── CorporateServiceDesk.Infrastructure/
-│
-└── tests/
-    ├── CorporateServiceDesk.UnitTests/
-    └── CorporateServiceDesk.IntegrationTests/
+---
+
+## Endpoints disponíveis
+
+| Método | Rota | Descrição | Resposta de sucesso |
+| --- | --- | --- | --- |
+| `POST` | `/api/tickets` | Abre um chamado | `201 Created` |
+| `GET` | `/api/tickets/{id}` | Consulta um chamado por ID | `200 OK` |
+
+### Criar um chamado
+
+```http
+POST /api/tickets
+Content-Type: application/json
+
+{
+  "title": "Acesso à VPN indisponível",
+  "description": "Não consigo estabelecer conexão com a VPN corporativa.",
+  "requesterId": "7f3d9bf7-f7d8-49cc-a9d0-44b5c27f3ac4",
+  "priority": "High"
+}
+```
+
+Exemplo de resposta:
+
+```http
+HTTP/1.1 201 Created
+Location: /api/tickets/4a032379-288d-4859-a105-0e15a763728b
+```
+
+```json
+{
+  "id": "4a032379-288d-4859-a105-0e15a763728b",
+  "title": "Acesso à VPN indisponível",
+  "description": "Não consigo estabelecer conexão com a VPN corporativa.",
+  "requesterId": "7f3d9bf7-f7d8-49cc-a9d0-44b5c27f3ac4",
+  "priority": "High",
+  "status": "Open",
+  "openedAtUtc": "2026-07-25T14:30:00+00:00"
+}
+```
+
+### Consultar um chamado
+
+```http
+GET /api/tickets/4a032379-288d-4859-a105-0e15a763728b
+Accept: application/json
 ```
 
 ---
 
 ## Tecnologias
 
-### Em uso
-
-- C#;
-- .NET 8;
-- ASP.NET Core Web API;
-- Controllers;
-- Swagger/OpenAPI;
-- Docker;
-- Visual Studio 2022.
-
-### Planejadas
-
-- Entity Framework Core;
-- PostgreSQL ou SQL Server;
-- JWT Bearer;
-- autorização baseada em policies;
-- `ILogger`;
-- Problem Details;
-- xUnit;
-- biblioteca de mocks, quando necessária;
-- Docker Compose;
-- pipeline de integração contínua.
-
-A escolha definitiva do banco e da plataforma de pipeline será registrada como decisão técnica.
+| Categoria | Tecnologia |
+| --- | --- |
+| Linguagem e runtime | C# e .NET 8 |
+| API | ASP.NET Core Web API com Controllers |
+| Documentação | Swagger/OpenAPI e comentários XML |
+| Persistência | Entity Framework Core 8.0.11 |
+| Banco de dados | PostgreSQL com Npgsql 8.0.11 |
+| Testes | xUnit, Moq e coverlet |
+| Containers | Docker e Docker Compose |
+| IDE utilizada | Visual Studio 2022 |
 
 ---
 
-## Pré-requisitos
+## Estrutura do repositório
 
-Para executar o estado atual do projeto:
+```text
+CorporateServiceDesk/
+├── docs/
+│   ├── adr/
+│   ├── 01-visao-do-produto.md
+│   ├── 02-requisitos-do-mvp.md
+│   ├── 03-matriz-de-permissoes.md
+│   └── 04-user-stories.md
+├── src/
+│   ├── CorporateServiceDesk.Api/
+│   ├── CorporateServiceDesk.Application/
+│   ├── CorporateServiceDesk.Domain/
+│   └── CorporateServiceDesk.Infrastructure/
+├── tests/
+│   └── CorporateServiceDesk.UnitTests/
+├── CorporateServiceDesk.sln
+├── compose.yaml
+└── README.md
+```
+
+---
+
+## Como executar
+
+### Pré-requisitos
 
 - .NET 8 SDK;
-- Visual Studio 2022 com suporte ao ASP.NET Core;
-- Docker Desktop, para execução pelo perfil de container;
+- PostgreSQL;
+- Docker Desktop, caso o banco ou a API sejam executados em container;
 - Git.
 
-Verifique o SDK instalado:
+### 1. Configurar a conexão com o banco
 
-```bash
-dotnet --version
+Para execução local, use o Secret Manager e não versione credenciais:
+
+```powershell
+dotnet user-secrets set `
+  "ConnectionStrings:DefaultConnection" `
+  "Host=127.0.0.1;Port=55432;Database=corporate_service_desk;Username=corporate_service_desk;Password=SUA_SENHA_LOCAL" `
+  --project src/CorporateServiceDesk.Api
 ```
 
-Verifique o Docker:
+A porta deve corresponder à porta publicada pela sua instância local do PostgreSQL.
 
-```bash
-docker --version
-```
+### 2. Restaurar e compilar
 
----
-
-## Executando sem Docker
-
-Na raiz do repositório, execute:
-
-```bash
+```powershell
 dotnet restore
-```
-
-O comando restaura as dependências NuGet da solution.
-
-Compile o projeto:
-
-```bash
 dotnet build
 ```
 
-Execute a API:
-
-```bash
-dotnet run --project src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj
-```
-
-O endereço utilizado será exibido no terminal.
-
-Acesse o Swagger pela URL indicada pela aplicação, acrescentando:
-
-```text
-/swagger
-```
-
-Exemplo:
-
-```text
-https://localhost:<porta>/swagger
-```
-
----
-
-## Executando pelo Visual Studio
-
-1. Abra `CorporateServiceDesk.sln`;
-2. Defina `CorporateServiceDesk.Api` como projeto de inicialização;
-3. Selecione o perfil de execução com Docker;
-4. Inicie com `F5` ou `Ctrl + F5`;
-5. Aguarde a abertura do Swagger;
-6. Execute o endpoint temporário `GET /WeatherForecast`.
-
----
-
-## Build da imagem Docker
-
-Execute na pasta onde está o arquivo `CorporateServiceDesk.sln`:
-
-```bash
-docker build \
-  -f src/CorporateServiceDesk.Api/Dockerfile \
-  -t corporate-service-desk-api:local \
-  .
-```
-
-No PowerShell:
+### 3. Aplicar as migrations
 
 ```powershell
-docker build `
-  -f src/CorporateServiceDesk.Api/Dockerfile `
-  -t corporate-service-desk-api:local `
-  .
+dotnet ef database update `
+  --project src/CorporateServiceDesk.Infrastructure `
+  --startup-project src/CorporateServiceDesk.Api `
+  --context ApplicationDbContext
 ```
 
-O ponto final representa o contexto de build e deve ser mantido.
+### 4. Executar a API
 
----
-
-## Smoke test atual
-
-O endpoint abaixo pertence ao template inicial e será removido quando o primeiro fluxo real estiver disponível.
-
-```http
-GET /WeatherForecast
+```powershell
+dotnet run --project src/CorporateServiceDesk.Api
 ```
 
-Resultado esperado:
+No perfil HTTP padrão, o Swagger fica disponível em:
 
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
+```text
+http://localhost:5278/swagger
 ```
 
-Exemplo de resposta:
+### 5. Executar os testes
 
-```json
-[
-  {
-    "date": "2026-07-17",
-    "temperatureC": 16,
-    "temperatureF": 60,
-    "summary": "Freezing"
-  }
-]
+```powershell
+dotnet test
 ```
 
-Esse endpoint é utilizado apenas para validar:
+Resultado validado no estado atual:
 
-- inicialização da aplicação;
-- roteamento;
-- controllers;
-- serialização JSON;
-- Swagger;
-- comunicação com o container.
-
----
-
-## Regras iniciais do domínio
-
-As regras ainda serão refinadas durante a descoberta do domínio.
-
-Hipóteses iniciais:
-
-1. Todo chamado possui um solicitante.
-2. Um chamado novo inicia com status `Aberto`.
-3. Apenas usuários autorizados visualizam chamados de terceiros.
-4. Apenas atendentes ou administradores podem assumir chamados.
-5. Um chamado precisa ser resolvido antes de ser encerrado.
-6. Usuários inativos não podem autenticar-se.
-7. Mudanças relevantes devem registrar data e responsável.
-
-As hipóteses serão transformadas em regras somente após validação durante a modelagem.
-
----
-
-## Fluxo de status proposto
-
-```mermaid
-stateDiagram-v2
-    [*] --> Aberto
-    Aberto --> EmAtendimento
-    EmAtendimento --> Resolvido
-    Resolvido --> Encerrado
-    Resolvido --> EmAtendimento: reabertura
+```text
+Total: 22
+Aprovados: 22
+Falhas: 0
 ```
-
-As transições serão protegidas pelo domínio e não ficarão espalhadas nos controllers.
-
----
-
-## Segurança planejada
-
-- armazenamento de senha com algoritmo de hash adequado;
-- JWT com configuração externa;
-- segredos fora do repositório;
-- autorização no servidor;
-- policies reutilizáveis;
-- validação de acesso ao recurso;
-- ausência de tokens e senhas nos logs;
-- respostas sem stack traces;
-- validação de entrada;
-- limitação de informações sensíveis;
-- configuração de CORS conforme os clientes reais.
 
 ---
 
 ## Estratégia de testes
 
-### Testes unitários
+Os testes unitários não dependem de rede ou banco de dados.
 
-Cobrirão principalmente:
+### Domínio
 
-- regras do domínio;
-- transições de status;
-- invariantes;
-- casos de uso;
-- validações;
-- cenários de erro.
+- criação e normalização de chamados;
+- validação de título, descrição, solicitante e prioridade;
+- atribuição e reatribuição;
+- resolução;
+- encerramento;
+- proteção contra transições inválidas.
 
-Os testes unitários não dependerão de banco ou rede.
+### Aplicação
 
-### Testes de integração
+- persistência de um novo chamado;
+- normalização antes da consulta de duplicidade;
+- bloqueio de chamado ativo duplicado;
+- retorno do resultado criado;
+- propagação de `CancellationToken`;
+- interação com Repository e Unit of Work.
 
-Cobrirão principalmente:
-
-- endpoints;
-- pipeline HTTP;
-- autenticação;
-- autorização;
-- serialização;
-- Entity Framework Core;
-- banco de dados;
-- respostas de erro;
-- paginação e filtros.
-
-### Testes de arquitetura
-
-Poderão validar:
-
-- ausência de dependência do `Domain` para outras camadas;
-- ausência de dependência da `Application` para `Infrastructure`;
-- convenções estruturais importantes.
+`TimeProvider` é injetado para tornar regras temporais determinísticas e facilitar testes.
 
 ---
 
-## Decisões técnicas
+## Persistência
 
-### Uso do .NET 8
+O `ApplicationDbContext` mapeia `Ticket` para a tabela `tickets`. Os nomes das colunas seguem `snake_case`, e prioridade/status são armazenados como texto para melhorar a legibilidade do banco.
 
-O projeto foi iniciado em .NET 8 conforme o objetivo do laboratório.
+Índices atuais:
 
-### Uso de Controllers
+- `requester_id`;
+- `assignee_id`;
+- índice composto por `status` e `opened_at_utc`.
 
-Controllers foram escolhidos por oferecerem uma estrutura explícita para:
+As migrations ficam em:
 
-- contratos HTTP;
-- autorização;
-- filtros;
-- model binding;
-- documentação;
-- organização por recurso.
+```text
+src/CorporateServiceDesk.Infrastructure/Persistence/Migrations
+```
 
-### Arquitetura em camadas
+A escolha do PostgreSQL está documentada no ADR `0002-Uso do PostgreSQL.md`.
 
-A separação foi escolhida para proteger regras de negócio de detalhes técnicos e permitir testes nos limites de maior risco.
+---
 
-O projeto não pretende criar uma abstração para cada classe. Novas interfaces serão adicionadas somente quando houver um limite de dependência ou necessidade real.
+## Segurança
 
-### Docker desde a fundação
+### Práticas já adotadas
 
-O suporte a containers foi configurado no início para validar a execução em ambiente Linux e reduzir diferenças entre ambientes.
+- configuração de conexão externa ao `appsettings.json` principal;
+- suporte ao Secret Manager do ASP.NET Core;
+- `.env` ignorado pelo Git;
+- propriedades das entidades com alteração controlada;
+- validação de entrada na borda HTTP e no domínio;
+- enums enviados como texto, sem aceitar valores numéricos arbitrários;
+- execução do container com usuário não privilegiado da imagem .NET.
 
-### Sem microsserviços
+### Planejado
 
-O escopo atual não justifica microsserviços.
+- hash seguro de senhas;
+- autenticação por JWT;
+- autorização baseada em perfis, permissões e policies;
+- validação de acesso ao recurso;
+- proteção contra exposição de tokens, senhas e stack traces;
+- configuração de CORS conforme os clientes reais.
 
-A aplicação será inicialmente um monólito com limites internos claros.
+---
 
-### Sem CQRS ou MediatR inicialmente
+## Documentação complementar
 
-Esses padrões e ferramentas não serão adicionados apenas por convenção.
-
-A adoção dependerá de problemas concretos relacionados à complexidade, separação entre leitura e escrita ou organização dos casos de uso.
-
-### Sem repositório genérico por padrão
-
-O projeto não criará um repositório genérico apenas para encapsular o Entity Framework Core.
-
-As abstrações de persistência serão definidas conforme as necessidades reais dos casos de uso.
+- `docs/01-visao-do-produto.md`: contexto, objetivos e atores;
+- `docs/02-requisitos-do-mvp.md`: requisitos funcionais e não funcionais;
+- `docs/03-matriz-de-permissoes.md`: permissões planejadas por perfil;
+- `docs/04-user-stories.md`: histórias e critérios de aceite;
+- `docs/adr/0001-arquitetura-inicial.md`: decisão sobre a arquitetura;
+- `0002-Uso do PostgreSQL.md`: decisão sobre o banco de dados;
+- `0003-configuracao-segredo-execucao-local.md`: configuração local e diagnóstico de conexão.
 
 ---
 
 ## Roadmap
 
-### Fundação
+### Fluxo de chamados
 
-- [x] Criar solution;
-- [x] Criar Web API;
-- [x] Configurar Swagger;
-- [x] Configurar Docker;
-- [x] Criar Domain;
-- [x] Criar Application;
-- [ ] Criar Infrastructure;
-- [ ] Criar projetos de testes.
-
-### Primeiro fluxo vertical
-
-- [ ] Modelar a entidade `Ticket`;
-- [ ] Criar um chamado;
-- [ ] Consultar chamado por identificador;
-- [ ] Persistir com Entity Framework Core;
-- [ ] Expor endpoints reais;
-- [ ] Remover `WeatherForecast`.
+- [x] modelar `Ticket`;
+- [x] abrir chamado;
+- [x] consultar chamado por identificador;
+- [x] persistir com EF Core e PostgreSQL;
+- [ ] atribuir chamado por endpoint;
+- [ ] resolver e encerrar chamado por endpoint;
+- [ ] adicionar comentários e histórico;
+- [ ] implementar listagem, paginação e filtros.
 
 ### Segurança
 
-- [ ] Modelar usuários;
-- [ ] Implementar hash de senha;
-- [ ] Implementar login;
-- [ ] Gerar JWT;
-- [ ] Implementar perfis;
-- [ ] Implementar permissões;
-- [ ] Criar policies.
+- [ ] modelar usuários;
+- [ ] implementar hash de senha;
+- [ ] implementar login e JWT;
+- [ ] implementar perfis e permissões;
+- [ ] criar policies de autorização.
 
-### Consultas
+### Qualidade e operação
 
-- [ ] Paginação;
-- [ ] Filtros;
-- [ ] Ordenação;
-- [ ] Limite máximo por página;
-- [ ] Consultas sem tracking quando aplicável.
-
-### Operação
-
-- [ ] Tratamento global de exceções;
-- [ ] Problem Details;
-- [ ] Logs estruturados;
-- [ ] Correlation ID;
-- [ ] Health checks;
-- [ ] Docker Compose;
-- [ ] Pipeline.
-
-### Portfólio
-
-- [ ] Diagrama arquitetural final;
-- [ ] Exemplos de request e response;
-- [ ] Evidências dos testes;
-- [ ] Prints da aplicação;
-- [ ] ADRs;
-- [ ] Limitações;
-- [ ] Estudo de caso SAR.
+- [x] testes unitários do domínio;
+- [x] testes unitários do caso de uso de abertura;
+- [ ] testes de integração;
+- [ ] Problem Details e tratamento global de exceções;
+- [ ] logs estruturados e Correlation ID;
+- [ ] health checks;
+- [ ] pipeline de integração contínua;
+- [ ] deploy e observabilidade.
 
 ---
 
 ## Limitações atuais
 
-O projeto ainda não possui:
-
-- funcionalidade real de chamados;
-- camada de infraestrutura;
-- banco de dados;
-- autenticação;
-- autorização;
-- testes automatizados;
-- pipeline;
-- deploy;
-- observabilidade completa.
-
-O endpoint `WeatherForecast` ainda é apenas o exemplo criado pelo template do ASP.NET Core.
+- autenticação e autorização ainda não foram implementadas;
+- erros de domínio/aplicação ainda não são convertidos globalmente em respostas HTTP padronizadas;
+- apenas abertura e consulta por ID estão expostas na API;
+- atribuição, resolução e encerramento existem no domínio, mas ainda não possuem endpoints;
+- listagem, filtros, comentários e histórico ainda não estão disponíveis;
+- não há testes de integração ou pipeline de CI;
+- a configuração do Docker Compose ainda está em evolução.
 
 ---
 
-## Melhorias futuras
+## Decisões técnicas
 
-Após a conclusão do MVP, poderão ser avaliados:
-
-- anexos;
-- categorias configuráveis;
-- departamentos;
-- SLA;
-- auditoria;
-- notificações;
-- recuperação de senha;
-- refresh tokens;
-- dashboards;
-- integração com outros sistemas;
-- cache;
-- mensageria;
-- observabilidade distribuída.
-
-Cada melhoria será avaliada considerando benefício, custo, risco e complexidade adicionada.
+- **Monólito modular:** adequado ao tamanho atual e com limites internos explícitos.
+- **Controllers:** tornam contratos HTTP, validação, documentação e autorização visíveis.
+- **EF Core + PostgreSQL:** oferecem produtividade, migrations e um banco relacional robusto.
+- **Domínio sem dependência de framework:** mantém as regras centrais isoladas e testáveis.
+- **Sem MediatR:** os casos de uso são resolvidos diretamente pela injeção de dependência.
+- **Sem microsserviços:** a complexidade operacional não se justifica no estágio atual.
+- **Docker desde a fundação:** reduz diferenças entre ambientes e valida a execução em Linux.
 
 ---
 
-## Estudo de caso — SAR
+## Evolução do projeto
 
-### Situação
-
-O objetivo é criar uma API corporativa de referência que demonstre organização técnica e capacidade de evolução, sem transformar o projeto em um sistema excessivamente grande.
-
-### Ação
-
-Foi iniciada uma solution .NET 8 com ASP.NET Core Web API, separação inicial entre `Api`, `Application` e `Domain`, suporte a Docker e validação pelo Swagger.
-
-As dependências começaram a ser organizadas para manter regras de negócio separadas dos detalhes técnicos.
-
-### Resultado parcial
-
-A solution compila, a API executa em container e o endpoint inicial responde com `200 OK`.
-
-As funcionalidades de negócio ainda serão implementadas e os resultados finais serão documentados somente após validação.
-
----
-
-## Convenção de commits
-
-O projeto poderá utilizar Conventional Commits:
-
-```text
-feat: nova funcionalidade
-fix: correção de defeito
-refactor: alteração estrutural sem mudar comportamento
-test: criação ou alteração de testes
-docs: documentação
-build: build ou dependências
-ci: pipeline
-chore: manutenção
-```
-
-Exemplos:
-
-```text
-chore(architecture): add application project
-docs: add initial project readme
-feat(tickets): add ticket creation use case
-test(tickets): cover invalid status transition
-```
-
----
+Este README acompanha o código entregue. Novas funcionalidades, métricas, diagramas e decisões serão adicionados conforme forem implementados e validados, evitando apresentar itens planejados como concluídos.
 
 ## Autor
 
