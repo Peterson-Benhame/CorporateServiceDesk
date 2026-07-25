@@ -18,16 +18,24 @@ namespace CorporateServiceDesk.Application.Tickets.Create
             }
 
             var ticket = Ticket.Open(
-                normalizedTitle,
-                command.Description,
-                command.RequesterId,
-                command.Priority,
-                timeProvider);
+                            normalizedTitle,
+                            command.Description,
+                            command.RequesterId,
+                            command.Priority,
+                            timeProvider);
 
             await ticketRepository.AddAsync(ticket, cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
 
-            return new CreateTicketResult(ticket.Id, ticket.Title, ticket.Status, ticket.OpenedAtUtc);
+            return new CreateTicketResult(ticket.Id,
+                                        ticket.Title,
+                                        ticket.Description.Trim(),
+                                        ticket.RequesterId,
+                                        ticket.Priority,
+                                        ticket.Status,
+                                        ticket.OpenedAtUtc);
         }
     }
 }
+
+

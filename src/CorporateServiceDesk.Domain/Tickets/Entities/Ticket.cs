@@ -5,7 +5,7 @@ namespace CorporateServiceDesk.Domain.Tickets.Entities;
 
 public sealed class Ticket
 {
-    private Ticket() { } // Necessario apenas para materializacao do EF Core.
+    private Ticket() { }
     private Ticket(Guid id, string title, string description, Guid requesterId, TicketPriority priority, DateTimeOffset openedAtUtc)
     {
         if (id == Guid.Empty) throw new DomainException("Ticket id is required.");
@@ -34,6 +34,9 @@ public sealed class Ticket
 
     public static Ticket Open(string title, string description, Guid requesterId, TicketPriority priority, TimeProvider timeProvider)
     {
+        if (requesterId == Guid.Empty)
+            throw new DomainException("O identificador do solicitante é obrigatório.");
+
         if (!Enum.IsDefined(typeof(TicketPriority), priority))
             throw new DomainException("Priority is invalid.");
 

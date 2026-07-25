@@ -3,9 +3,12 @@
 namespace CorporateServiceDesk.Application.Tickets.Create
 {
     public sealed record CreateTicketResult(
-    Guid Id,
-    string Title,
-    TicketStatus Status,
-    DateTimeOffset OpenedAtUtc);
+        Guid Id,
+        string Title,
+        string Description,
+        Guid RequesterId,
+        TicketPriority Priority,
+        TicketStatus Status,
+        DateTimeOffset OpenedAtUtc);
 
 }

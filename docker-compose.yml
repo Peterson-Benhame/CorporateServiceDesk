@@ -1,21 +1,11 @@
 services:
-  api:
-    container_name: corporate-service-desk-api
+  corporateservicedesk.api:
+    image: ${DOCKER_REGISTRY-}corporateservicedeskapi
     build:
       context: .
       dockerfile: src/CorporateServiceDesk.Api/Dockerfile
-      args:
-        BUILD_CONFIGURATION: Debug
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     ports:
       - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  corporate-service-desk-postgres-data:
