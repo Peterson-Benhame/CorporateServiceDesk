@@ -1,5 +1,6 @@
 ﻿using CorporateServiceDesk.Application.Common.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using FluentValidation;
 using System.Reflection;
 
 namespace CorporateServiceDesk.Application
@@ -20,6 +21,7 @@ namespace CorporateServiceDesk.Application
             }
 
             services.AddSingleton(TimeProvider.System);
+            services.AddValidatorsFromAssembly(assembly);
 
             return services;
         }

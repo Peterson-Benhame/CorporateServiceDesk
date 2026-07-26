@@ -1,6 +1,4 @@
 ﻿using CorporateServiceDesk.Application.Tickets.Create;
-using System.Net;
-
 namespace CorporateServiceDesk.Application.Common.Abstractions.Notifications
 {
     public sealed class Result<T>

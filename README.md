@@ -5,7 +5,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
 ![Entity Framework Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)
 ![Docker](https://img.shields.io/badge/Docker-suportado-2496ED)
-![Tests](https://img.shields.io/badge/testes-22%20aprovados-success)
+![Tests](https://img.shields.io/badge/testes-39%20automatizados-success)
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
 API REST para centralizar a abertura, o acompanhamento e o atendimento de chamados internos de uma organização.
@@ -57,14 +57,16 @@ O projeto está em desenvolvimento incremental. O primeiro fluxo vertical de cha
 - [x] serialização textual de enums;
 - [x] Dockerfile multi-stage;
 - [x] testes unitários com xUnit e Moq;
-- [x] 22 testes automatizados aprovados.
+- [x] listagem paginada com filtros tipados e busca avançada;
+- [x] testes separados entre Domain, Application e Integration;
+- [x] 34 testes unitários aprovados;
+- [x] 5 testes de integração, sendo 2 dependentes de Docker;
 
 ### Próximas entregas
 
 - [ ] tratamento global de exceções com Problem Details;
 - [ ] autenticação e autorização;
 - [ ] endpoints para atribuir, resolver e encerrar chamados;
-- [ ] listagem paginada com filtros e ordenação;
 - [ ] comentários e histórico do chamado;
 - [ ] testes de integração;
 - [ ] logs estruturados, health checks e pipeline de CI.
@@ -295,7 +297,45 @@ Os enums também reservam os estados `Waiting` e `Cancelled`, que ainda não pos
 | Método | Rota | Descrição | Resposta de sucesso |
 | --- | --- | --- | --- |
 | `POST` | `/api/tickets` | Abre um chamado | `201 Created` |
+| `GET` | `/api/tickets` | Lista chamados com paginação e filtros tipados | `200 OK` |
+| `POST` | `/api/tickets/search` | Pesquisa chamados com filtros dinâmicos | `200 OK` |
 | `GET` | `/api/tickets/{id}` | Consulta um chamado por ID | `200 OK` |
+
+### Listar chamados
+
+```http
+GET /api/tickets?page=1&pageSize=10&countTotal=true&status=Open&priority=High&search=VPN
+Accept: application/json
+```
+
+### Pesquisa avançada
+
+```http
+POST /api/tickets/search
+Content-Type: application/json
+
+{
+  "page": 1,
+  "pageSize": 10,
+  "countTotal": true,
+  "sortBy": "OpenedAtUtc",
+  "sortDirection": "Descending",
+  "criteria": [
+    {
+      "column": "Status",
+      "operator": "Equals",
+      "value": "Open",
+      "logicalOperator": "And"
+    },
+    {
+      "column": "Title",
+      "operator": "Contains",
+      "value": "VPN",
+      "logicalOperator": "And"
+    }
+  ]
+}
+```
 
 ### Criar um chamado
 
@@ -370,7 +410,9 @@ CorporateServiceDesk/
 │   ├── CorporateServiceDesk.Domain/
 │   └── CorporateServiceDesk.Infrastructure/
 ├── tests/
-│   └── CorporateServiceDesk.UnitTests/
+│   ├── CorporateServiceDesk.Domain.UnitTests/
+│   ├── CorporateServiceDesk.Application.UnitTests/
+│   └── CorporateServiceDesk.IntegrationTests/
 ├── CorporateServiceDesk.sln
 ├── compose.yaml
 └── README.md
@@ -437,16 +479,18 @@ dotnet test
 Resultado validado no estado atual:
 
 ```text
-Total: 22
-Aprovados: 22
-Falhas: 0
+Domain.UnitTests: 16 aprovados
+Application.UnitTests: 18 aprovados
+IntegrationTests: 5 testes (requer Docker para os cenários PostgreSQL)
 ```
 
 ---
 
 ## Estratégia de testes
 
-Os testes unitários não dependem de rede ou banco de dados.
+Os testes unitários não dependem de rede ou banco de dados. Os testes de
+integração utilizam PostgreSQL descartável por meio de Testcontainers e exigem
+Docker em execução.
 
 ### Domínio
 
@@ -536,7 +580,7 @@ A escolha do PostgreSQL está documentada no ADR `0002-Uso do PostgreSQL.md`.
 - [ ] atribuir chamado por endpoint;
 - [ ] resolver e encerrar chamado por endpoint;
 - [ ] adicionar comentários e histórico;
-- [ ] implementar listagem, paginação e filtros.
+- [x] implementar listagem, paginação e filtros.
 
 ### Segurança
 
@@ -563,9 +607,9 @@ A escolha do PostgreSQL está documentada no ADR `0002-Uso do PostgreSQL.md`.
 
 - autenticação e autorização ainda não foram implementadas;
 - erros de domínio/aplicação ainda não são convertidos globalmente em respostas HTTP padronizadas;
-- apenas abertura e consulta por ID estão expostas na API;
+- abertura, consulta por ID, listagem e pesquisa avançada estão expostas na API;
 - atribuição, resolução e encerramento existem no domínio, mas ainda não possuem endpoints;
-- listagem, filtros, comentários e histórico ainda não estão disponíveis;
+- comentários e histórico ainda não estão disponíveis;
 - não há testes de integração ou pipeline de CI;
 - a configuração do Docker Compose ainda está em evolução.
 

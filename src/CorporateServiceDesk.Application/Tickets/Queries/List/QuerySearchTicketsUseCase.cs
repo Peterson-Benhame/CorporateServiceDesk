@@ -1,0 +1,32 @@
+using CorporateServiceDesk.Application.Common.Abstractions;
+using CorporateServiceDesk.Application.Common.Abstractions.Notifications;
+using CorporateServiceDesk.Application.Common.Pagination;
+using CorporateServiceDesk.Application.Tickets.Abstractions;
+using CorporateServiceDesk.Application.Tickets.Queries.List.Specifications;
+using FluentValidation;
+
+namespace CorporateServiceDesk.Application.Tickets.Queries.List;
+
+public sealed class QuerySearchTicketsUseCase(
+    ITicketRepository repository,
+    IValidator<QuerySearchTicketsFilter> validator) : IUseCase
+{
+    public async Task<Result<PagedResult<QueryTicketListItemResult>>> ExecuteAsync(
+        QuerySearchTicketsFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var normalized = filter with { Pagination = filter.Pagination.Normalize() };
+        var validation = await validator.ValidateAsync(normalized, cancellationToken);
+        if (!validation.IsValid)
+            return Result<PagedResult<QueryTicketListItemResult>>.Failure(
+                string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)),
+                EnumErrorType.BadRequest);
+
+        var page = await repository.QueryAsync(
+            new TicketSearchSpecification(normalized.Criteria),
+            normalized.Pagination,
+            normalized.Sort,
+            cancellationToken);
+        return Result<PagedResult<QueryTicketListItemResult>>.Success(page);
+    }
+}
