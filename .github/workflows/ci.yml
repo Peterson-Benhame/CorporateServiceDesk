@@ -14,6 +14,9 @@ on:
       - develop
 
   workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
@@ -160,9 +163,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Docker image
-        run: |
-          docker build \
-            --file src/CorporateServiceDesk.Api/Dockerfile \
-            --tag corporate-service-desk-api:${{ github.sha }} \
-            .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: src/CorporateServiceDesk.Api/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/corporate-service-desk-api:latest
+            ghcr.io/${{ github.repository_owner }}/corporate-service-desk-api:${{ github.sha }}
