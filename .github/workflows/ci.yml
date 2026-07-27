@@ -17,13 +17,16 @@ on:
 
 jobs:
   build:
+    name: Build, Tests and Coverage
     runs-on: ubuntu-latest
 
     env:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+      SOLUTION_FILE: CorporateServiceDesk.sln
+      BUILD_CONFIGURATION: Release
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Setup .NET
@@ -34,18 +37,35 @@ jobs:
           cache-dependency-path: |
             **/packages.lock.json
 
-      - name: Restore
-        run: dotnet restore CorporateServiceDesk.sln --locked-mode
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }} --locked-mode
 
-      - name: Build
-        run: dotnet build CorporateServiceDesk.sln --configuration Release --no-restore
+      - name: Build solution
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
-      - name: Test with coverage
-        run: dotnet test CorporateServiceDesk.sln --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./TestResults
+      - name: Run tests with coverage
+        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --collect:"XPlat Code Coverage" --results-directory "${{ github.workspace }}/TestResults" --logger "console;verbosity=normal"
 
-      - name: Upload coverage results
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        run: reportgenerator "-reports:${{ github.workspace }}/TestResults/**/coverage.cobertura.xml" "-targetdir:${{ github.workspace }}/CoverageReport" "-reporttypes:Html;Cobertura;TextSummary"
+
+      - name: Show coverage summary
+        run: cat "${{ github.workspace }}/CoverageReport/Summary.txt"
+
+      - name: Add coverage summary to workflow
+        run: |
+          echo "## Test Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat "${{ github.workspace }}/CoverageReport/Summary.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-            name: code-coverage
-            path: TestResults/**/coverage.cobertura.xml
-            if-no-files-found: error
+          name: code-coverage-report
+          path: CoverageReport
+          if-no-files-found: error
+          retention-days: 14
