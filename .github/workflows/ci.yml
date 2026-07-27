@@ -40,5 +40,12 @@ jobs:
       - name: Build
         run: dotnet build CorporateServiceDesk.sln --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test CorporateServiceDesk.sln --configuration Release --no-build
+      - name: Test with coverage
+        run: dotnet test CorporateServiceDesk.sln --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v4
+        with:
+            name: code-coverage
+            path: TestResults/**/coverage.cobertura.xml
+            if-no-files-found: error
