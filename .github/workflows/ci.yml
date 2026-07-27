@@ -159,3 +159,10 @@ jobs:
           path: CoverageReport
           if-no-files-found: error
           retention-days: 14
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file src/CorporateServiceDesk.Api/Dockerfile \
+            --tag corporate-service-desk-api:${{ github.sha }} \
+            .
