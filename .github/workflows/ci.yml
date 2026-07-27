@@ -24,6 +24,8 @@ jobs:
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
       SOLUTION_FILE: CorporateServiceDesk.sln
       BUILD_CONFIGURATION: Release
+      MINIMUM_LINE_COVERAGE: 60
+      MINIMUM_BRANCH_COVERAGE: 40
 
     steps:
       - name: Checkout repository
@@ -38,31 +40,119 @@ jobs:
             **/packages.lock.json
 
       - name: Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_FILE }} --locked-mode
+        run: dotnet restore "${{ env.SOLUTION_FILE }}" --locked-mode
 
       - name: Build solution
-        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build "${{ env.SOLUTION_FILE }}" --configuration "${{ env.BUILD_CONFIGURATION }}" --no-restore
 
       - name: Run tests with coverage
-        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --collect:"XPlat Code Coverage" --results-directory "${{ github.workspace }}/TestResults" --logger "console;verbosity=normal"
+        run: |
+          dotnet test "${{ env.SOLUTION_FILE }}" \
+            --configuration "${{ env.BUILD_CONFIGURATION }}" \
+            --no-build \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "${{ github.workspace }}/TestResults" \
+            --logger "console;verbosity=normal"
 
       - name: Install ReportGenerator
         run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
       - name: Generate coverage report
-        run: reportgenerator "-reports:${{ github.workspace }}/TestResults/**/coverage.cobertura.xml" "-targetdir:${{ github.workspace }}/CoverageReport" "-reporttypes:Html;Cobertura;TextSummary"
+        run: |
+          reportgenerator \
+            "-reports:${{ github.workspace }}/TestResults/**/coverage.cobertura.xml" \
+            "-targetdir:${{ github.workspace }}/CoverageReport" \
+            "-reporttypes:Html;Cobertura;TextSummary" \
+            "-filefilters:-*/Migrations/*"
 
       - name: Show coverage summary
         run: cat "${{ github.workspace }}/CoverageReport/Summary.txt"
 
-      - name: Add coverage summary to workflow
+      - name: Validate coverage thresholds
+        shell: bash
+        run: |
+          python3 <<'PYTHON'
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          report_path = os.path.join(
+              os.environ["GITHUB_WORKSPACE"],
+              "CoverageReport",
+              "Cobertura.xml"
+          )
+
+          minimum_line_coverage = float(
+              os.environ["MINIMUM_LINE_COVERAGE"]
+          )
+
+          minimum_branch_coverage = float(
+              os.environ["MINIMUM_BRANCH_COVERAGE"]
+          )
+
+          if not os.path.exists(report_path):
+              print(f"Coverage report not found: {report_path}")
+              sys.exit(1)
+
+          root = ET.parse(report_path).getroot()
+
+          line_coverage = float(root.attrib.get("line-rate", 0)) * 100
+          branch_coverage = float(root.attrib.get("branch-rate", 0)) * 100
+
+          print(f"Line coverage: {line_coverage:.2f}%")
+          print(f"Minimum line coverage: {minimum_line_coverage:.2f}%")
+          print(f"Branch coverage: {branch_coverage:.2f}%")
+          print(f"Minimum branch coverage: {minimum_branch_coverage:.2f}%")
+
+          failures = []
+
+          if line_coverage < minimum_line_coverage:
+              failures.append(
+                  f"Line coverage is {line_coverage:.2f}%, "
+                  f"but the minimum required is "
+                  f"{minimum_line_coverage:.2f}%."
+              )
+
+          if branch_coverage < minimum_branch_coverage:
+              failures.append(
+                  f"Branch coverage is {branch_coverage:.2f}%, "
+                  f"but the minimum required is "
+                  f"{minimum_branch_coverage:.2f}%."
+              )
+
+          if failures:
+              print("\nCoverage validation failed:")
+
+              for failure in failures:
+                  print(f"- {failure}")
+
+              sys.exit(1)
+
+          print("\nCoverage thresholds were met successfully.")
+          PYTHON
+
+      - name: Add coverage summary
+        if: always()
+        shell: bash
         run: |
           echo "## Test Coverage" >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          cat "${{ github.workspace }}/CoverageReport/Summary.txt" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -f "${{ github.workspace }}/CoverageReport/Summary.txt" ]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat "${{ github.workspace }}/CoverageReport/Summary.txt" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage summary was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Required thresholds" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Line coverage: ${{ env.MINIMUM_LINE_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch coverage: ${{ env.MINIMUM_BRANCH_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Entity Framework migrations: excluded" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
