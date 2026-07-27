@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -19,18 +19,30 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: production-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+  SOLUTION_FILE: CorporateServiceDesk.sln
+  BUILD_CONFIGURATION: Release
+  MINIMUM_LINE_COVERAGE: 60
+  MINIMUM_BRANCH_COVERAGE: 40
+  DOCKER_IMAGE: ghcr.io/peterson-benhame/corporate-service-desk-api
+  INFRASTRUCTURE_PROJECT: src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj
+  STARTUP_PROJECT: src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj
+  DB_CONTEXT: ApplicationDbContext
+
 jobs:
-  build:
-    name: Build, Tests, Coverage and Docker
+  ci:
+    name: Build, Tests, Coverage and Migration Validation
     runs-on: ubuntu-latest
 
     env:
-      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-      SOLUTION_FILE: CorporateServiceDesk.sln
-      BUILD_CONFIGURATION: Release
-      MINIMUM_LINE_COVERAGE: 60
-      MINIMUM_BRANCH_COVERAGE: 40
-      DOCKER_IMAGE: ghcr.io/peterson-benhame/corporate-service-desk-api
+      # Usada apenas para criar o DbContext durante os comandos do EF.
+      # Não acessa o banco de produção.
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=corporate_service_desk_ci;Username=postgres;Password=postgres
 
     steps:
       - name: Checkout repository
@@ -87,13 +99,8 @@ jobs:
               "Cobertura.xml"
           )
 
-          minimum_line_coverage = float(
-              os.environ["MINIMUM_LINE_COVERAGE"]
-          )
-
-          minimum_branch_coverage = float(
-              os.environ["MINIMUM_BRANCH_COVERAGE"]
-          )
+          minimum_line = float(os.environ["MINIMUM_LINE_COVERAGE"])
+          minimum_branch = float(os.environ["MINIMUM_BRANCH_COVERAGE"])
 
           if not os.path.exists(report_path):
               print(f"Coverage report not found: {report_path}")
@@ -105,24 +112,22 @@ jobs:
           branch_coverage = float(root.attrib.get("branch-rate", 0)) * 100
 
           print(f"Line coverage: {line_coverage:.2f}%")
-          print(f"Minimum line coverage: {minimum_line_coverage:.2f}%")
+          print(f"Required line coverage: {minimum_line:.2f}%")
           print(f"Branch coverage: {branch_coverage:.2f}%")
-          print(f"Minimum branch coverage: {minimum_branch_coverage:.2f}%")
+          print(f"Required branch coverage: {minimum_branch:.2f}%")
 
           failures = []
 
-          if line_coverage < minimum_line_coverage:
+          if line_coverage < minimum_line:
               failures.append(
                   f"Line coverage is {line_coverage:.2f}%, "
-                  f"but the minimum required is "
-                  f"{minimum_line_coverage:.2f}%."
+                  f"but the minimum is {minimum_line:.2f}%."
               )
 
-          if branch_coverage < minimum_branch_coverage:
+          if branch_coverage < minimum_branch:
               failures.append(
                   f"Branch coverage is {branch_coverage:.2f}%, "
-                  f"but the minimum required is "
-                  f"{minimum_branch_coverage:.2f}%."
+                  f"but the minimum is {minimum_branch:.2f}%."
               )
 
           if failures:
@@ -133,7 +138,7 @@ jobs:
 
               sys.exit(1)
 
-          print("\nCoverage thresholds were met successfully.")
+          print("\nCoverage thresholds were met.")
           PYTHON
 
       - name: Add coverage summary
@@ -154,7 +159,7 @@ jobs:
           echo "### Required thresholds" >> "$GITHUB_STEP_SUMMARY"
           echo "- Line coverage: ${{ env.MINIMUM_LINE_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
           echo "- Branch coverage: ${{ env.MINIMUM_BRANCH_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Entity Framework migrations: excluded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Entity Framework migrations: excluded from coverage" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
         if: always()
@@ -164,6 +169,41 @@ jobs:
           path: CoverageReport
           if-no-files-found: error
           retention-days: 14
+
+      - name: Install Entity Framework CLI
+        run: dotnet tool install --global dotnet-ef --version "8.0.*"
+
+      - name: Validate pending model changes
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
+            --startup-project "${{ env.STARTUP_PROJECT }}" \
+            --context "${{ env.DB_CONTEXT }}" \
+            --configuration "${{ env.BUILD_CONFIGURATION }}" \
+            --no-build
+
+      - name: Create migrations directory
+        run: mkdir -p "${{ github.workspace }}/MigrationBundle"
+
+      - name: Generate migration bundle
+        run: |
+          dotnet ef migrations bundle \
+            --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
+            --startup-project "${{ env.STARTUP_PROJECT }}" \
+            --context "${{ env.DB_CONTEXT }}" \
+            --configuration "${{ env.BUILD_CONFIGURATION }}" \
+            --self-contained \
+            --target-runtime linux-x64 \
+            --output "${{ github.workspace }}/MigrationBundle/efbundle" \
+            --force
+
+      - name: Upload migration bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-bundle
+          path: MigrationBundle/efbundle
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -182,3 +222,112 @@ jobs:
           tags: |
             ${{ env.DOCKER_IMAGE }}:latest
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+
+  migrate-production:
+    name: Apply Production Migrations
+    runs-on: ubuntu-latest
+    needs: ci
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    environment:
+      name: production
+
+    env:
+      MIGRATION_CONNECTION_STRING: ${{ secrets.PRODUCTION_DATABASE_CONNECTION }}
+
+    steps:
+      - name: Download migration bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: migration-bundle
+          path: MigrationBundle
+
+      - name: Validate production database secret
+        shell: bash
+        run: |
+          if [ -z "$MIGRATION_CONNECTION_STRING" ]; then
+            echo "PRODUCTION_DATABASE_CONNECTION was not configured."
+            exit 1
+          fi
+
+      - name: Make migration bundle executable
+        run: chmod +x MigrationBundle/efbundle
+
+      - name: Apply pending migrations
+        run: |
+          ./MigrationBundle/efbundle \
+            --connection "$MIGRATION_CONNECTION_STRING"
+
+      - name: Add migration summary
+        run: |
+          echo "## Production Migration" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: production" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: migrations processed successfully" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-production:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: migrate-production
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    environment:
+      name: production
+      url: https://corporateservicedesk.onrender.com
+
+    env:
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+    steps:
+      - name: Validate Render deploy hook secret
+        shell: bash
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL was not configured."
+            exit 1
+          fi
+
+      - name: Trigger Render deployment
+        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Wait for Render deployment
+        run: sleep 90
+
+      - name: Validate production health
+        shell: bash
+        run: |
+          URL="https://corporateservicedesk.onrender.com/health"
+          MAX_ATTEMPTS=20
+          WAIT_SECONDS=15
+
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            echo "Health check attempt $attempt of $MAX_ATTEMPTS..."
+
+            STATUS_CODE=$(curl \
+              --silent \
+              --output /tmp/health-response.txt \
+              --write-out "%{http_code}" \
+              "$URL" || true)
+
+            if [ "$STATUS_CODE" = "200" ]; then
+              echo "Production API is healthy."
+              cat /tmp/health-response.txt
+              exit 0
+            fi
+
+            echo "API returned HTTP $STATUS_CODE."
+            sleep "$WAIT_SECONDS"
+          done
+
+          echo "Production API did not become healthy."
+          exit 1
+
+      - name: Add deployment summary
+        run: |
+          echo "## Production Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: production" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: https://corporateservicedesk.onrender.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Health check: passed" >> "$GITHUB_STEP_SUMMARY"
