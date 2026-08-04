@@ -1,4 +1,12 @@
 # Imagem base da aplicação.
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+
+USER $APP_UID
+WORKDIR /app
+
+EXPOSE 8080
+EXPOSE 8081
+
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 ARG BUILD_CONFIGURATION=Release
@@ -22,6 +30,31 @@ COPY ["src/CorporateServiceDesk.Infrastructure/packages.lock.json", "src/Corpora
 COPY [".config/dotnet-tools.json", ".config/dotnet-tools.json"]
 
 RUN dotnet restore "./src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj" --locked-mode
+RUN dotnet tool restore --tool-manifest "/workspace/.config/dotnet-tools.json"
+
+COPY . .
+
+WORKDIR "/workspace/src/CorporateServiceDesk.Api"
+
+RUN dotnet build "./CorporateServiceDesk.Api.csproj" \
+    --configuration "$BUILD_CONFIGURATION" \
+    --output /app/build \
+    --no-restore
+
+# Imagem usada para compilar.
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+ARG BUILD_CONFIGURATION=Release
+
+WORKDIR /workspace
+
+COPY ["src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj", "src/CorporateServiceDesk.Api/"]
+COPY ["src/CorporateServiceDesk.Application/CorporateServiceDesk.Application.csproj", "src/CorporateServiceDesk.Application/"]
+COPY ["src/CorporateServiceDesk.Domain/CorporateServiceDesk.Domain.csproj", "src/CorporateServiceDesk.Domain/"]
+COPY ["src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj", "src/CorporateServiceDesk.Infrastructure/"]
+COPY [".config/dotnet-tools.json", ".config/dotnet-tools.json"]
+
+RUN dotnet restore "./src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj"
 RUN dotnet tool restore --tool-manifest "/workspace/.config/dotnet-tools.json"
 
 COPY . .
