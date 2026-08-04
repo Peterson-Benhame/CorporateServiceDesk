@@ -7,14 +7,17 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+# Imagem utilizada para restore e compilação.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 ARG BUILD_CONFIGURATION=Release
 
 WORKDIR /workspace
 
+# Arquivo responsável pelo gerenciamento central das versões.
 COPY ["Directory.Packages.props", "./"]
 
+# Projetos e arquivos lock utilizados pelo restore.
 COPY ["src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj", "src/CorporateServiceDesk.Api/"]
 COPY ["src/CorporateServiceDesk.Api/packages.lock.json", "src/CorporateServiceDesk.Api/"]
 
@@ -30,31 +33,6 @@ COPY ["src/CorporateServiceDesk.Infrastructure/packages.lock.json", "src/Corpora
 COPY [".config/dotnet-tools.json", ".config/dotnet-tools.json"]
 
 RUN dotnet restore "./src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj" --locked-mode
-RUN dotnet tool restore --tool-manifest "/workspace/.config/dotnet-tools.json"
-
-COPY . .
-
-WORKDIR "/workspace/src/CorporateServiceDesk.Api"
-
-RUN dotnet build "./CorporateServiceDesk.Api.csproj" \
-    --configuration "$BUILD_CONFIGURATION" \
-    --output /app/build \
-    --no-restore
-
-# Imagem usada para compilar.
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-
-ARG BUILD_CONFIGURATION=Release
-
-WORKDIR /workspace
-
-COPY ["src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj", "src/CorporateServiceDesk.Api/"]
-COPY ["src/CorporateServiceDesk.Application/CorporateServiceDesk.Application.csproj", "src/CorporateServiceDesk.Application/"]
-COPY ["src/CorporateServiceDesk.Domain/CorporateServiceDesk.Domain.csproj", "src/CorporateServiceDesk.Domain/"]
-COPY ["src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj", "src/CorporateServiceDesk.Infrastructure/"]
-COPY [".config/dotnet-tools.json", ".config/dotnet-tools.json"]
-
-RUN dotnet restore "./src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj"
 RUN dotnet tool restore --tool-manifest "/workspace/.config/dotnet-tools.json"
 
 COPY . .
@@ -82,6 +60,8 @@ FROM build AS migrations
 
 ARG BUILD_CONFIGURATION=Release
 
+# Usada somente para criar o DbContext durante a geração do bundle.
+# Não é levada para a imagem final.
 ENV ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=build;Username=build;Password=build"
 
 WORKDIR /workspace
