@@ -1,20 +1,12 @@
 # Corporate Service Desk API
 
+[![CI/CD](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
 ![Entity Framework Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)
 ![Docker](https://img.shields.io/badge/Docker-suportado-2496ED)
 ![Tests](https://img.shields.io/badge/testes-39%20automatizados-success)
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-
-# Corporate Service Desk API
-
-[![CI/CD](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml)
-![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
-![Docker](https://img.shields.io/badge/Docker-supported-2496ED)
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
 API REST para gerenciamento de chamados corporativos, desenvolvida com .NET 8, ASP.NET Core, Entity Framework Core e PostgreSQL.
