@@ -18,10 +18,11 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 concurrency:
-  group: production-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
@@ -33,15 +34,22 @@ env:
   INFRASTRUCTURE_PROJECT: src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj
   STARTUP_PROJECT: src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj
   DB_CONTEXT: ApplicationDbContext
+  SMOKE_NETWORK: corporate-service-desk-ci
+  SMOKE_DB_CONTAINER: corporate-service-desk-postgres-ci
+  SMOKE_API_CONTAINER: corporate-service-desk-api-ci
+  SMOKE_DB_NAME: corporate_service_desk_ci
+  SMOKE_DB_USER: postgres
+  SMOKE_DB_PASSWORD: postgres_ci_password
 
 jobs:
   ci:
-    name: Build, Tests, Coverage and Migration Validation
+    name: Build, Tests, Coverage, Container and Security
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     env:
-      # Usada apenas para criar o DbContext durante os comandos do EF.
-      # Não acessa o banco de produção.
+      # Usada apenas para criar o DbContext durante os comandos de design do EF.
+      # NÃ£o acessa o banco de produÃ§Ã£o.
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=corporate_service_desk_ci;Username=postgres;Password=postgres
 
     steps:
@@ -75,7 +83,7 @@ jobs:
             --logger "console;verbosity=normal"
 
       - name: Install ReportGenerator
-        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.11
 
       - name: Generate coverage report
         run: |
@@ -187,6 +195,164 @@ jobs:
             --configuration "${{ env.BUILD_CONFIGURATION }}" \
             --no-build
 
+      - name: Build production Docker image
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+
+          docker build \
+            --file "src/CorporateServiceDesk.Api/Dockerfile" \
+            --build-arg BUILD_CONFIGURATION="${{ env.BUILD_CONFIGURATION }}" \
+            --build-arg BUILD_REVISION="${GITHUB_SHA}" \
+            --build-arg BUILD_VERSION="0.0.0-${SHORT_SHA}" \
+            --tag "${DOCKER_IMAGE}:${GITHUB_SHA}" \
+            .
+
+      - name: Create smoke-test environment
+        shell: bash
+        run: |
+          docker network create "${SMOKE_NETWORK}"
+
+          docker run --detach \
+            --name "${SMOKE_DB_CONTAINER}" \
+            --network "${SMOKE_NETWORK}" \
+            --env POSTGRES_DB="${SMOKE_DB_NAME}" \
+            --env POSTGRES_USER="${SMOKE_DB_USER}" \
+            --env POSTGRES_PASSWORD="${SMOKE_DB_PASSWORD}" \
+            --health-cmd="pg_isready -U ${SMOKE_DB_USER} -d ${SMOKE_DB_NAME}" \
+            --health-interval=2s \
+            --health-timeout=3s \
+            --health-retries=30 \
+            postgres:16-alpine
+
+      - name: Wait for smoke-test PostgreSQL
+        shell: bash
+        run: |
+          for attempt in $(seq 1 30); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${SMOKE_DB_CONTAINER}")
+
+            if [ "$STATUS" = "healthy" ]; then
+              echo "PostgreSQL is healthy."
+              exit 0
+            fi
+
+            if [ "$STATUS" = "unhealthy" ]; then
+              docker logs "${SMOKE_DB_CONTAINER}"
+              exit 1
+            fi
+
+            echo "Waiting for PostgreSQL: attempt ${attempt}/30."
+            sleep 2
+          done
+
+          docker logs "${SMOKE_DB_CONTAINER}"
+          exit 1
+
+      - name: Start production API container
+        shell: bash
+        run: |
+          docker run --detach \
+            --name "${SMOKE_API_CONTAINER}" \
+            --network "${SMOKE_NETWORK}" \
+            --publish 18080:8080 \
+            --env ASPNETCORE_ENVIRONMENT=Production \
+            --env ASPNETCORE_URLS=http://+:8080 \
+            --env APP_VERSION="${GITHUB_SHA}" \
+            --env "ConnectionStrings__DefaultConnection=Host=${SMOKE_DB_CONTAINER};Port=5432;Database=${SMOKE_DB_NAME};Username=${SMOKE_DB_USER};Password=${SMOKE_DB_PASSWORD}" \
+            "${DOCKER_IMAGE}:${GITHUB_SHA}"
+
+      - name: Validate container startup, migrations and metadata
+        shell: bash
+        run: |
+          READY=false
+
+          for attempt in $(seq 1 60); do
+            IS_RUNNING=$(docker inspect --format='{{.State.Running}}' "${SMOKE_API_CONTAINER}")
+
+            if [ "$IS_RUNNING" != "true" ]; then
+              echo "API container stopped before becoming healthy."
+              docker logs "${SMOKE_API_CONTAINER}"
+              exit 1
+            fi
+
+            VERSION_RESPONSE=$(curl --silent --fail http://localhost:18080/version || true)
+            HEALTH_RESPONSE=$(curl --silent --fail http://localhost:18080/health || true)
+
+            if echo "$VERSION_RESPONSE" | jq --exit-status --arg sha "$GITHUB_SHA" '.commit == $sha' >/dev/null 2>&1 &&
+               echo "$HEALTH_RESPONSE" | jq --exit-status --arg sha "$GITHUB_SHA" '.statusApplication == "Healthy" and .commit == $sha' >/dev/null 2>&1; then
+              READY=true
+              break
+            fi
+
+            echo "Waiting for API: attempt ${attempt}/60."
+            sleep 5
+          done
+
+          if [ "$READY" != "true" ]; then
+            echo "API did not become healthy with the expected commit."
+            docker logs "${SMOKE_API_CONTAINER}"
+            exit 1
+          fi
+
+          MIGRATION_COUNT=$(docker exec "${SMOKE_DB_CONTAINER}" \
+            psql \
+              --username "${SMOKE_DB_USER}" \
+              --dbname "${SMOKE_DB_NAME}" \
+              --tuples-only \
+              --no-align \
+              --command 'SELECT COUNT(*) FROM "__EFMigrationsHistory";')
+
+          MIGRATION_COUNT=$(echo "$MIGRATION_COUNT" | xargs)
+
+          if ! [[ "$MIGRATION_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "No Entity Framework migration was recorded."
+            exit 1
+          fi
+
+          echo "Container smoke test passed."
+          echo "Applied migrations: ${MIGRATION_COUNT}."
+
+      - name: Show smoke-test logs
+        if: failure()
+        shell: bash
+        run: |
+          docker logs "${SMOKE_DB_CONTAINER}" 2>/dev/null || true
+          docker logs "${SMOKE_API_CONTAINER}" 2>/dev/null || true
+
+      - name: Cleanup smoke-test environment
+        if: always()
+        shell: bash
+        run: |
+          docker rm --force "${SMOKE_API_CONTAINER}" 2>/dev/null || true
+          docker rm --force "${SMOKE_DB_CONTAINER}" 2>/dev/null || true
+          docker network rm "${SMOKE_NETWORK}" 2>/dev/null || true
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          format: sarif
+          output: trivy-container.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Upload Trivy container results
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-container.sarif
+          category: trivy-container
+
+      - name: Block critical container vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: docker/login-action@v4
@@ -195,20 +361,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and publish Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: src/CorporateServiceDesk.Api/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+      - name: Publish Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        shell: bash
+        run: |
+          docker push "${DOCKER_IMAGE}:${GITHUB_SHA}"
+          docker tag "${DOCKER_IMAGE}:${GITHUB_SHA}" "${DOCKER_IMAGE}:latest"
+          docker push "${DOCKER_IMAGE}:latest"
 
   deploy-production:
-    name: Deploy to Render
+    name: Deploy exact commit to Render
     runs-on: ubuntu-latest
     needs: ci
+    timeout-minutes: 15
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
@@ -218,6 +383,7 @@ jobs:
 
     env:
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      PRODUCTION_URL: https://corporateservicedesk.onrender.com
 
     steps:
       - name: Validate Render deploy hook secret
@@ -228,45 +394,63 @@ jobs:
             exit 1
           fi
 
-      - name: Trigger Render deployment
-        run: curl --fail --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
-
-      - name: Wait for Render deployment
-        run: sleep 90
-
-      - name: Validate production health
+      - name: Trigger Render deployment for the exact commit
         shell: bash
         run: |
-          URL="https://corporateservicedesk.onrender.com/health"
-          MAX_ATTEMPTS=20
+          if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then
+            DEPLOY_URL="${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}"
+          else
+            DEPLOY_URL="${RENDER_DEPLOY_HOOK_URL}?ref=${GITHUB_SHA}"
+          fi
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --request POST \
+            "$DEPLOY_URL"
+
+          echo "Render deployment requested for commit ${GITHUB_SHA}."
+
+      - name: Wait for the exact production version
+        shell: bash
+        run: |
+          MAX_ATTEMPTS=40
           WAIT_SECONDS=15
+          LAST_COMMIT="unavailable"
 
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
-            echo "Health check attempt $attempt of $MAX_ATTEMPTS..."
+            VERSION_RESPONSE=$(curl --silent --fail "${PRODUCTION_URL}/version" || true)
+            HEALTH_RESPONSE=$(curl --silent --fail "${PRODUCTION_URL}/health" || true)
 
-            STATUS_CODE=$(curl \
-              --silent \
-              --output /tmp/health-response.txt \
-              --write-out "%{http_code}" \
-              "$URL" || true)
+            DEPLOYED_COMMIT=$(echo "$VERSION_RESPONSE" | jq --raw-output '.commit // empty' 2>/dev/null || true)
+            HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | jq --raw-output '.statusApplication // empty' 2>/dev/null || true)
+            HEALTH_COMMIT=$(echo "$HEALTH_RESPONSE" | jq --raw-output '.commit // empty' 2>/dev/null || true)
 
-            if [ "$STATUS_CODE" = "200" ]; then
-              echo "Production API is healthy."
-              cat /tmp/health-response.txt
+            if [ -n "$DEPLOYED_COMMIT" ]; then
+              LAST_COMMIT="$DEPLOYED_COMMIT"
+            fi
+
+            if [ "$DEPLOYED_COMMIT" = "$GITHUB_SHA" ] &&
+               [ "$HEALTH_COMMIT" = "$GITHUB_SHA" ] &&
+               [ "$HEALTH_STATUS" = "Healthy" ]; then
+              echo "Production is running the expected commit and is healthy."
               exit 0
             fi
 
-            echo "API returned HTTP $STATUS_CODE."
+            echo "Attempt ${attempt}/${MAX_ATTEMPTS}: deployed commit=${LAST_COMMIT}, health=${HEALTH_STATUS:-unavailable}."
             sleep "$WAIT_SECONDS"
           done
 
-          echo "Production API did not become healthy."
+          echo "Production did not reach the expected commit ${GITHUB_SHA}."
+          echo "Last detected commit: ${LAST_COMMIT}."
           exit 1
 
       - name: Add deployment summary
         run: |
           echo "## Production Deployment" >> "$GITHUB_STEP_SUMMARY"
           echo "- Environment: production" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API: https://corporateservicedesk.onrender.com" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Health check: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Expected and deployed commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: ${{ env.PRODUCTION_URL }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Migrations: executed by the Docker entrypoint on Render" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Health and version validation: passed" >> "$GITHUB_STEP_SUMMARY"

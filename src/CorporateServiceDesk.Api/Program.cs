@@ -10,6 +10,10 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var applicationAssembly = Assembly.GetExecutingAssembly();
+var applicationVersion = applicationAssembly.GetName().Version?.ToString() ?? "unknown";
+var applicationCommit = ResolveCommit(builder.Configuration, applicationAssembly);
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
@@ -42,7 +46,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SchemaFilter<EnumSchemaFilter>();
 
-    string xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    string xmlFile = $"{applicationAssembly.GetName().Name}.xml";
     string xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
 
     options.IncludeXmlComments(xmlPath);
@@ -60,9 +64,27 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapGet(
+        "/version",
+        () => Results.Ok(
+            new
+            {
+                application = "CorporateServiceDesk.Api",
+                version = applicationVersion,
+                commit = applicationCommit,
+                environment = app.Environment.EnvironmentName
+            }))
+    .WithName("GetApplicationVersion")
+    .WithTags("Diagnostics")
+    .Produces(StatusCodes.Status200OK);
 
 app.MapHealthChecks(
     "/health",
@@ -74,6 +96,9 @@ app.MapHealthChecks(
                 new
                 {
                     statusApplication = report.Status.ToString(),
+                    application = "CorporateServiceDesk.Api",
+                    version = applicationVersion,
+                    commit = applicationCommit,
                     currentTime = DateTimeOffset.UtcNow,
                     environment = app.Environment.EnvironmentName
                 });
@@ -84,5 +109,32 @@ app.MapHealthChecks(
     });
 
 app.Run();
+
+static string ResolveCommit(IConfiguration configuration, Assembly assembly)
+{
+    string? configuredCommit =
+        configuration["RENDER_GIT_COMMIT"] ??
+        configuration["APP_VERSION"];
+
+    if (!string.IsNullOrWhiteSpace(configuredCommit))
+    {
+        return configuredCommit;
+    }
+
+    string? informationalVersion = assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion;
+
+    if (string.IsNullOrWhiteSpace(informationalVersion))
+    {
+        return "unknown";
+    }
+
+    int metadataSeparator = informationalVersion.IndexOf('+');
+
+    return metadataSeparator >= 0
+        ? informationalVersion[(metadataSeparator + 1)..]
+        : informationalVersion;
+}
 
 public partial class Program;

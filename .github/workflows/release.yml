@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
+
+concurrency:
+  group: release-master
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE: ghcr.io/peterson-benhame/corporate-service-desk-api
+
+jobs:
+  release:
+    name: Release Please and versioned Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Create or update release
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout released version
+        if: steps.release.outputs.release_created == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        if: steps.release.outputs.release_created == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish semantic Docker tags
+        if: steps.release.outputs.release_created == 'true'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          REVISION=$(git rev-parse HEAD)
+          MAJOR="${RELEASE_VERSION%%.*}"
+          MINOR="${RELEASE_VERSION%.*}"
+
+          docker build \
+            --file src/CorporateServiceDesk.Api/Dockerfile \
+            --build-arg BUILD_CONFIGURATION=Release \
+            --build-arg BUILD_REVISION="${REVISION}" \
+            --build-arg BUILD_VERSION="${RELEASE_VERSION}" \
+            --tag "${DOCKER_IMAGE}:${RELEASE_TAG}" \
+            --tag "${DOCKER_IMAGE}:${RELEASE_VERSION}" \
+            --tag "${DOCKER_IMAGE}:${MINOR}" \
+            --tag "${DOCKER_IMAGE}:${MAJOR}" \
+            --tag "${DOCKER_IMAGE}:latest" \
+            .
+
+          docker push "${DOCKER_IMAGE}:${RELEASE_TAG}"
+          docker push "${DOCKER_IMAGE}:${RELEASE_VERSION}"
+          docker push "${DOCKER_IMAGE}:${MINOR}"
+          docker push "${DOCKER_IMAGE}:${MAJOR}"
+          docker push "${DOCKER_IMAGE}:latest"
+
+      - name: Add release summary
+        if: steps.release.outputs.release_created == 'true'
+        run: |
+          echo "## Release created" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: \`${{ steps.release.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${{ steps.release.outputs.tag_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Docker image: \`${{ env.DOCKER_IMAGE }}\`" >> "$GITHUB_STEP_SUMMARY"
