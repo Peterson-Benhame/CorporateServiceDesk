@@ -187,29 +187,6 @@ jobs:
             --configuration "${{ env.BUILD_CONFIGURATION }}" \
             --no-build
 
-      - name: Create migrations directory
-        run: mkdir -p "${{ github.workspace }}/MigrationBundle"
-
-      - name: Generate migration bundle
-        run: |
-          dotnet ef migrations bundle \
-            --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
-            --startup-project "${{ env.STARTUP_PROJECT }}" \
-            --context "${{ env.DB_CONTEXT }}" \
-            --configuration "${{ env.BUILD_CONFIGURATION }}" \
-            --self-contained \
-            --target-runtime linux-x64 \
-            --output "${{ github.workspace }}/MigrationBundle/efbundle" \
-            --force
-
-      - name: Upload migration bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: migration-bundle
-          path: MigrationBundle/efbundle
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: docker/login-action@v4
@@ -228,54 +205,10 @@ jobs:
             ${{ env.DOCKER_IMAGE }}:latest
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
 
-  migrate-production:
-    name: Apply Production Migrations
-    runs-on: ubuntu-latest
-    needs: ci
-
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-
-    environment:
-      name: production
-
-    env:
-      MIGRATION_CONNECTION_STRING: ${{ secrets.PRODUCTION_DATABASE_CONNECTION }}
-      ConnectionStrings__DefaultConnection: ${{ secrets.PRODUCTION_DATABASE_CONNECTION }}
-
-    steps:
-      - name: Download migration bundle
-        uses: actions/download-artifact@v5
-        with:
-          name: migration-bundle
-          path: MigrationBundle
-
-      - name: Validate production database secret
-        shell: bash
-        run: |
-          if [ -z "$MIGRATION_CONNECTION_STRING" ]; then
-            echo "PRODUCTION_DATABASE_CONNECTION was not configured."
-            exit 1
-          fi
-
-      - name: Make migration bundle executable
-        run: chmod +x MigrationBundle/efbundle
-
-      - name: Apply pending migrations
-        run: |
-          ./MigrationBundle/efbundle \
-            --connection "$MIGRATION_CONNECTION_STRING"
-
-      - name: Add migration summary
-        run: |
-          echo "## Production Migration" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Environment: production" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Result: migrations processed successfully" >> "$GITHUB_STEP_SUMMARY"
-
   deploy-production:
     name: Deploy to Render
     runs-on: ubuntu-latest
-    needs: migrate-production
+    needs: ci
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
