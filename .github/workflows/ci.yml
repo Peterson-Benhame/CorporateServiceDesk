@@ -170,12 +170,14 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Restore .NET tools
-        run: dotnet tool restore
+      - name: Install Entity Framework CLI
+        run: | 
+          dotnet tool install --global dotnet-ef --version "8.0.*"
+           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Validate pending model changes
         run: |
-         dotnet ef migrations has-pending-model-changes \
+          dotnet ef migrations has-pending-model-changes \
             --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
             --startup-project "${{ env.STARTUP_PROJECT }}" \
             --context "${{ env.DB_CONTEXT }}" \
