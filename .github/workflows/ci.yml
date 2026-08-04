@@ -56,6 +56,9 @@ jobs:
           cache-dependency-path: |
             **/packages.lock.json
 
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
       - name: Restore dependencies
         run: dotnet restore "${{ env.SOLUTION_FILE }}" --locked-mode
 
@@ -170,10 +173,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Install Entity Framework CLI
-        run: | 
-          dotnet tool install --global dotnet-ef --version "8.0.*"
-           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      - name: Validate Entity Framework CLI
+        run: |
+          dotnet tool list --local
+          dotnet ef --version
 
       - name: Validate pending model changes
         run: |
