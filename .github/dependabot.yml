@@ -1,59 +1,42 @@
 version: 2
 
-updates:
-  - package-ecosystem: nuget
-    directory: /
-    target-branch: master
+multi-ecosystem-groups:
+  application-dependencies:
     schedule:
       interval: weekly
       day: monday
       time: "08:00"
       timezone: America/Sao_Paulo
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    target-branch: master
+    patterns:
+      - "*"
+    multi-ecosystem-group: application-dependencies
     open-pull-requests-limit: 5
-    groups:
-      dotnet-minor-and-patch:
-        update-types:
-          - minor
-          - patch
     commit-message:
       prefix: build(deps)
 
   - package-ecosystem: github-actions
     directory: /
     target-branch: master
-    schedule:
-      interval: weekly
-      day: monday
-      time: "08:20"
-      timezone: America/Sao_Paulo
+    patterns:
+      - "*"
+    multi-ecosystem-group: application-dependencies
     open-pull-requests-limit: 5
-    groups:
-      github-actions:
-        patterns:
-          - "*"
     commit-message:
       prefix: ci(deps)
 
   - package-ecosystem: docker
-    directory: /src/CorporateServiceDesk.Api
+    directories:
+      - /
+      - /src/CorporateServiceDesk.Api
     target-branch: master
-    schedule:
-      interval: weekly
-      day: monday
-      time: "08:40"
-      timezone: America/Sao_Paulo
-    open-pull-requests-limit: 3
+    patterns:
+      - "*"
+    multi-ecosystem-group: application-dependencies
+    open-pull-requests-limit: 5
     commit-message:
       prefix: build(docker)
-
-  - package-ecosystem: docker
-    directory: /
-    target-branch: master
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:00"
-      timezone: America/Sao_Paulo
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: build(compose)

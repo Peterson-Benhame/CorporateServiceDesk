@@ -3,22 +3,21 @@ name: CI/CD
 on:
   push:
     branches:
-      - main
       - master
       - develop
 
   pull_request:
     branches:
-      - main
       - master
       - develop
+
+  schedule:
+    - cron: "17 6 * * 1"
 
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -42,14 +41,12 @@ env:
   SMOKE_DB_PASSWORD: postgres_ci_password
 
 jobs:
-  ci:
-    name: Build, Tests, Coverage, Container and Security
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     env:
-      # Usada apenas para criar o DbContext durante os comandos de design do EF.
-      # Não acessa o banco de produção.
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=corporate_service_desk_ci;Username=postgres;Password=postgres
 
     steps:
@@ -93,9 +90,6 @@ jobs:
             "-reporttypes:Html;Cobertura;TextSummary" \
             "-filefilters:-*/Migrations/*"
 
-      - name: Show coverage summary
-        run: cat "${{ github.workspace }}/CoverageReport/Summary.txt"
-
       - name: Validate coverage thresholds
         shell: bash
         run: |
@@ -104,73 +98,20 @@ jobs:
           import sys
           import xml.etree.ElementTree as ET
 
-          report_path = os.path.join(
-              os.environ["GITHUB_WORKSPACE"],
-              "CoverageReport",
-              "Cobertura.xml"
-          )
-
-          minimum_line = float(os.environ["MINIMUM_LINE_COVERAGE"])
-          minimum_branch = float(os.environ["MINIMUM_BRANCH_COVERAGE"])
-
-          if not os.path.exists(report_path):
-              print(f"Coverage report not found: {report_path}")
-              sys.exit(1)
-
+          report_path = os.path.join(os.environ["GITHUB_WORKSPACE"], "CoverageReport", "Cobertura.xml")
           root = ET.parse(report_path).getroot()
 
           line_coverage = float(root.attrib.get("line-rate", 0)) * 100
           branch_coverage = float(root.attrib.get("branch-rate", 0)) * 100
+          minimum_line = float(os.environ["MINIMUM_LINE_COVERAGE"])
+          minimum_branch = float(os.environ["MINIMUM_BRANCH_COVERAGE"])
 
           print(f"Line coverage: {line_coverage:.2f}%")
-          print(f"Required line coverage: {minimum_line:.2f}%")
           print(f"Branch coverage: {branch_coverage:.2f}%")
-          print(f"Required branch coverage: {minimum_branch:.2f}%")
 
-          failures = []
-
-          if line_coverage < minimum_line:
-              failures.append(
-                  f"Line coverage is {line_coverage:.2f}%, "
-                  f"but the minimum is {minimum_line:.2f}%."
-              )
-
-          if branch_coverage < minimum_branch:
-              failures.append(
-                  f"Branch coverage is {branch_coverage:.2f}%, "
-                  f"but the minimum is {minimum_branch:.2f}%."
-              )
-
-          if failures:
-              print("\nCoverage validation failed:")
-
-              for failure in failures:
-                  print(f"- {failure}")
-
+          if line_coverage < minimum_line or branch_coverage < minimum_branch:
               sys.exit(1)
-
-          print("\nCoverage thresholds were met.")
           PYTHON
-
-      - name: Add coverage summary
-        if: always()
-        shell: bash
-        run: |
-          echo "## Test Coverage" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ -f "${{ github.workspace }}/CoverageReport/Summary.txt" ]; then
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            cat "${{ github.workspace }}/CoverageReport/Summary.txt" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Coverage summary was not generated." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Required thresholds" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Line coverage: ${{ env.MINIMUM_LINE_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Branch coverage: ${{ env.MINIMUM_BRANCH_COVERAGE }}%" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Entity Framework migrations: excluded from coverage" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
         if: always()
@@ -181,11 +122,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Validate Entity Framework CLI
-        run: |
-          dotnet tool list --local
-          dotnet ef --version
-
       - name: Validate pending model changes
         run: |
           dotnet ef migrations has-pending-model-changes \
@@ -194,6 +130,110 @@ jobs:
             --context "${{ env.DB_CONTEXT }}" \
             --configuration "${{ env.BUILD_CONFIGURATION }}" \
             --no-build
+
+  codeql:
+    name: CodeQL
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          build-mode: manual
+          dependency-caching: true
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ env.SOLUTION_FILE }}" --locked-mode
+
+      - name: Build solution for CodeQL
+        run: dotnet build "${{ env.SOLUTION_FILE }}" --configuration "${{ env.BUILD_CONFIGURATION }}" --no-restore
+
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:csharp
+
+  repository-security:
+    name: Repository Security
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: never
+
+      - name: Scan repository with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          format: sarif
+          output: trivy-repository.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          skip-dirs: .git,bin,obj,TestResults,CoverageReport
+          exit-code: "0"
+
+      - name: Upload repository scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-repository.sarif
+          category: trivy-repository
+
+      - name: Block committed secrets
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          format: table
+          skip-dirs: .git,bin,obj,TestResults,CoverageReport
+          exit-code: "1"
+
+  container:
+    name: Container Validation
+    needs:
+      - codeql
+      - repository-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
       - name: Build production Docker image
         shell: bash
@@ -225,14 +265,13 @@ jobs:
             --health-retries=30 \
             postgres:16-alpine
 
-      - name: Wait for smoke-test PostgreSQL
+      - name: Wait for PostgreSQL
         shell: bash
         run: |
           for attempt in $(seq 1 30); do
             STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${SMOKE_DB_CONTAINER}")
 
             if [ "$STATUS" = "healthy" ]; then
-              echo "PostgreSQL is healthy."
               exit 0
             fi
 
@@ -241,14 +280,13 @@ jobs:
               exit 1
             fi
 
-            echo "Waiting for PostgreSQL: attempt ${attempt}/30."
             sleep 2
           done
 
           docker logs "${SMOKE_DB_CONTAINER}"
           exit 1
 
-      - name: Start production API container
+      - name: Start API container
         shell: bash
         run: |
           docker run --detach \
@@ -261,71 +299,33 @@ jobs:
             --env "ConnectionStrings__DefaultConnection=Host=${SMOKE_DB_CONTAINER};Port=5432;Database=${SMOKE_DB_NAME};Username=${SMOKE_DB_USER};Password=${SMOKE_DB_PASSWORD}" \
             "${DOCKER_IMAGE}:${GITHUB_SHA}"
 
-      - name: Validate container startup, migrations and metadata
+      - name: Validate API, migrations and version
         shell: bash
         run: |
-          READY=false
-
           for attempt in $(seq 1 60); do
-            IS_RUNNING=$(docker inspect --format='{{.State.Running}}' "${SMOKE_API_CONTAINER}")
-
-            if [ "$IS_RUNNING" != "true" ]; then
-              echo "API container stopped before becoming healthy."
-              docker logs "${SMOKE_API_CONTAINER}"
-              exit 1
-            fi
-
             VERSION_RESPONSE=$(curl --silent --fail http://localhost:18080/version || true)
             HEALTH_RESPONSE=$(curl --silent --fail http://localhost:18080/health || true)
 
-            if echo "$VERSION_RESPONSE" | jq --exit-status --arg sha "$GITHUB_SHA" '.commit == $sha' >/dev/null 2>&1 &&
+            if echo "$VERSION_RESPONSE" | jq --exit-status --arg sha "$GITHUB_SHA" '.commit == $sha' >/dev/null 2>&1 && \
                echo "$HEALTH_RESPONSE" | jq --exit-status --arg sha "$GITHUB_SHA" '.statusApplication == "Healthy" and .commit == $sha' >/dev/null 2>&1; then
-              READY=true
-              break
+              MIGRATION_COUNT=$(docker exec "${SMOKE_DB_CONTAINER}" \
+                psql \
+                  --username "${SMOKE_DB_USER}" \
+                  --dbname "${SMOKE_DB_NAME}" \
+                  --tuples-only \
+                  --no-align \
+                  --command 'SELECT COUNT(*) FROM "__EFMigrationsHistory";' | xargs)
+
+              if [[ "$MIGRATION_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+                exit 0
+              fi
             fi
 
-            echo "Waiting for API: attempt ${attempt}/60."
             sleep 5
           done
 
-          if [ "$READY" != "true" ]; then
-            echo "API did not become healthy with the expected commit."
-            docker logs "${SMOKE_API_CONTAINER}"
-            exit 1
-          fi
-
-          MIGRATION_COUNT=$(docker exec "${SMOKE_DB_CONTAINER}" \
-            psql \
-              --username "${SMOKE_DB_USER}" \
-              --dbname "${SMOKE_DB_NAME}" \
-              --tuples-only \
-              --no-align \
-              --command 'SELECT COUNT(*) FROM "__EFMigrationsHistory";')
-
-          MIGRATION_COUNT=$(echo "$MIGRATION_COUNT" | xargs)
-
-          if ! [[ "$MIGRATION_COUNT" =~ ^[1-9][0-9]*$ ]]; then
-            echo "No Entity Framework migration was recorded."
-            exit 1
-          fi
-
-          echo "Container smoke test passed."
-          echo "Applied migrations: ${MIGRATION_COUNT}."
-
-      - name: Show smoke-test logs
-        if: failure()
-        shell: bash
-        run: |
-          docker logs "${SMOKE_DB_CONTAINER}" 2>/dev/null || true
-          docker logs "${SMOKE_API_CONTAINER}" 2>/dev/null || true
-
-      - name: Cleanup smoke-test environment
-        if: always()
-        shell: bash
-        run: |
-          docker rm --force "${SMOKE_API_CONTAINER}" 2>/dev/null || true
-          docker rm --force "${SMOKE_DB_CONTAINER}" 2>/dev/null || true
-          docker network rm "${SMOKE_NETWORK}" 2>/dev/null || true
+          docker logs "${SMOKE_API_CONTAINER}"
+          exit 1
 
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -337,8 +337,8 @@ jobs:
           ignore-unfixed: true
           exit-code: "0"
 
-      - name: Upload Trivy container results
-        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      - name: Upload container scan results
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-container.sarif
@@ -353,8 +353,46 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-      - name: Login to GitHub Container Registry
+      - name: Cleanup smoke-test environment
+        if: always()
+        shell: bash
+        run: |
+          docker rm --force "${SMOKE_API_CONTAINER}" 2>/dev/null || true
+          docker rm --force "${SMOKE_DB_CONTAINER}" 2>/dev/null || true
+          docker network rm "${SMOKE_NETWORK}" 2>/dev/null || true
+
+      - name: Save Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: docker save "${DOCKER_IMAGE}:${GITHUB_SHA}" | gzip > corporate-service-desk-image.tar.gz
+
+      - name: Upload Docker image artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-docker-image
+          path: corporate-service-desk-image.tar.gz
+          retention-days: 1
+
+  publish:
+    name: Publish GHCR
+    needs: container
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: production-docker-image
+
+      - name: Load Docker image
+        run: docker load --input corporate-service-desk-image.tar.gz
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -362,7 +400,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Docker image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         shell: bash
         run: |
           docker push "${DOCKER_IMAGE}:${GITHUB_SHA}"
@@ -370,12 +407,11 @@ jobs:
           docker push "${DOCKER_IMAGE}:latest"
 
   deploy-production:
-    name: Deploy exact commit to Render
-    runs-on: ubuntu-latest
-    needs: ci
-    timeout-minutes: 15
-
+    name: Deploy Render
+    needs: publish
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     environment:
       name: production
@@ -389,12 +425,9 @@ jobs:
       - name: Validate Render deploy hook secret
         shell: bash
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL was not configured."
-            exit 1
-          fi
+          test -n "$RENDER_DEPLOY_HOOK_URL"
 
-      - name: Trigger Render deployment for the exact commit
+      - name: Trigger exact commit deployment
         shell: bash
         run: |
           if [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]]; then
@@ -403,23 +436,12 @@ jobs:
             DEPLOY_URL="${RENDER_DEPLOY_HOOK_URL}?ref=${GITHUB_SHA}"
           fi
 
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --request POST \
-            "$DEPLOY_URL"
+          curl --fail --silent --show-error --request POST "$DEPLOY_URL"
 
-          echo "Render deployment requested for commit ${GITHUB_SHA}."
-
-      - name: Wait for the exact production version
+      - name: Validate exact production version
         shell: bash
         run: |
-          MAX_ATTEMPTS=40
-          WAIT_SECONDS=15
-          LAST_COMMIT="unavailable"
-
-          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+          for attempt in $(seq 1 40); do
             VERSION_RESPONSE=$(curl --silent --fail "${PRODUCTION_URL}/version" || true)
             HEALTH_RESPONSE=$(curl --silent --fail "${PRODUCTION_URL}/health" || true)
 
@@ -427,30 +449,74 @@ jobs:
             HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | jq --raw-output '.statusApplication // empty' 2>/dev/null || true)
             HEALTH_COMMIT=$(echo "$HEALTH_RESPONSE" | jq --raw-output '.commit // empty' 2>/dev/null || true)
 
-            if [ -n "$DEPLOYED_COMMIT" ]; then
-              LAST_COMMIT="$DEPLOYED_COMMIT"
-            fi
-
-            if [ "$DEPLOYED_COMMIT" = "$GITHUB_SHA" ] &&
-               [ "$HEALTH_COMMIT" = "$GITHUB_SHA" ] &&
-               [ "$HEALTH_STATUS" = "Healthy" ]; then
-              echo "Production is running the expected commit and is healthy."
+            if [ "$DEPLOYED_COMMIT" = "$GITHUB_SHA" ] && [ "$HEALTH_STATUS" = "Healthy" ] && [ "$HEALTH_COMMIT" = "$GITHUB_SHA" ]; then
               exit 0
             fi
 
-            echo "Attempt ${attempt}/${MAX_ATTEMPTS}: deployed commit=${LAST_COMMIT}, health=${HEALTH_STATUS:-unavailable}."
-            sleep "$WAIT_SECONDS"
+            sleep 15
           done
 
-          echo "Production did not reach the expected commit ${GITHUB_SHA}."
-          echo "Last detected commit: ${LAST_COMMIT}."
           exit 1
 
-      - name: Add deployment summary
+  release:
+    name: Release
+    needs: deploy-production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+
+    steps:
+      - name: Create or update release
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout released version
+        if: steps.release.outputs.release_created == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        if: steps.release.outputs.release_created == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish semantic Docker tags
+        if: steps.release.outputs.release_created == 'true'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name }}
         run: |
-          echo "## Production Deployment" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Environment: production" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Expected and deployed commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API: ${{ env.PRODUCTION_URL }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Migrations: executed by the Docker entrypoint on Render" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Health and version validation: passed" >> "$GITHUB_STEP_SUMMARY"
+          REVISION=$(git rev-parse HEAD)
+          MAJOR="${RELEASE_VERSION%%.*}"
+          MINOR="${RELEASE_VERSION%.*}"
+
+          docker build \
+            --file src/CorporateServiceDesk.Api/Dockerfile \
+            --build-arg BUILD_CONFIGURATION=Release \
+            --build-arg BUILD_REVISION="${REVISION}" \
+            --build-arg BUILD_VERSION="${RELEASE_VERSION}" \
+            --tag "${DOCKER_IMAGE}:${RELEASE_TAG}" \
+            --tag "${DOCKER_IMAGE}:${RELEASE_VERSION}" \
+            --tag "${DOCKER_IMAGE}:${MINOR}" \
+            --tag "${DOCKER_IMAGE}:${MAJOR}" \
+            .
+
+          docker push "${DOCKER_IMAGE}:${RELEASE_TAG}"
+          docker push "${DOCKER_IMAGE}:${RELEASE_VERSION}"
+          docker push "${DOCKER_IMAGE}:${MINOR}"
+          docker push "${DOCKER_IMAGE}:${MAJOR}"
