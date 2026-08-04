@@ -1,80 +1,69 @@
 # Corporate Service Desk API
 
 [![CI/CD](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml)
+[![Security](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/security.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/security.yml)
+[![Release](https://img.shields.io/github/v/release/Peterson-Benhame/CorporateServiceDesk?display_name=tag&sort=semver)](https://github.com/Peterson-Benhame/CorporateServiceDesk/releases)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
-![Entity Framework Core](https://img.shields.io/badge/EF%20Core-8.0-512BD4)
-![Docker](https://img.shields.io/badge/Docker-suportado-2496ED)
-![Tests](https://img.shields.io/badge/testes-39%20automatizados-success)
+![Docker](https://img.shields.io/badge/Docker-supported-2496ED)
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
-API REST para gerenciamento de chamados corporativos, desenvolvida com .NET 8, ASP.NET Core, Entity Framework Core e PostgreSQL.
+API REST para gerenciamento de chamados corporativos, construída com .NET 8, ASP.NET Core, Entity Framework Core, PostgreSQL e Docker.
 
-O projeto demonstra a construção de um backend corporativo completo, desde a modelagem de domínio até testes automatizados, containers, migrations, integração contínua e deploy em produção.
+O projeto funciona como laboratório de Engenharia de Software e portfólio backend. Ele demonstra domínio, persistência, testes automatizados, segurança de dependências, migrations, containers, CI/CD, versionamento e deploy controlado.
 
 ## Demonstração
 
-| Recurso      | Endereço                                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------- |
-| API          | [corporateservicedesk.onrender.com](https://corporateservicedesk.onrender.com)                 |
-| Swagger      | [corporateservicedesk.onrender.com/swagger](https://corporateservicedesk.onrender.com/swagger) |
-| Health check | [corporateservicedesk.onrender.com/health](https://corporateservicedesk.onrender.com/health)   |
-| Pipeline     | [GitHub Actions](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions)             |
+| Recurso | Endereço |
+| --- | --- |
+| API | [corporateservicedesk.onrender.com](https://corporateservicedesk.onrender.com) |
+| Swagger | [corporateservicedesk.onrender.com/swagger](https://corporateservicedesk.onrender.com/swagger) |
+| Health | [corporateservicedesk.onrender.com/health](https://corporateservicedesk.onrender.com/health) |
+| Version | [corporateservicedesk.onrender.com/version](https://corporateservicedesk.onrender.com/version) |
+| Pipeline | [GitHub Actions](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions) |
+| Imagem | [GitHub Container Registry](https://github.com/Peterson-Benhame/CorporateServiceDesk/pkgs/container/corporate-service-desk-api) |
 
-> A disponibilidade do ambiente de demonstração depende do status atual do serviço no Render.
+> O plano de demonstração do Render pode suspender o serviço após inatividade. O primeiro acesso pode demorar.
 
----
+## Problema atendido
 
-## Sobre o projeto
+Solicitações internas registradas por e-mail, mensagens e planilhas dificultam acompanhamento, definição de responsáveis e rastreabilidade.
 
-Em muitas empresas, solicitações internas ainda são registradas por e-mail, mensagens ou planilhas. Isso dificulta o acompanhamento dos chamados, a definição de responsáveis e a rastreabilidade das alterações.
+A Corporate Service Desk API fornece base para:
 
-A Corporate Service Desk API centraliza esse processo e fornece uma base para:
+- abertura e acompanhamento de chamados;
+- pesquisa simples e avançada;
+- atribuição e ciclo de vida;
+- histórico de alterações;
+- integrações web, mobile e corporativas.
 
-* abertura e acompanhamento de chamados;
-* pesquisa com filtros simples e avançados;
-* atribuição de responsáveis;
-* gerenciamento do ciclo de vida dos chamados;
-* manutenção do histórico de alterações;
-* integração futura com aplicações web, mobile e sistemas corporativos.
+## Recursos implementados
 
-Além de atender ao problema funcional, o projeto foi desenvolvido como laboratório prático de Engenharia de Software e item de portfólio backend.
-
----
-
-## Principais recursos implementados
-
-* criação de chamados;
-* consulta de chamado por identificador;
-* listagem paginada;
-* filtros por status, prioridade, solicitante, atendente e período;
-* pesquisa textual;
-* pesquisa avançada com critérios dinâmicos;
-* prevenção de chamados ativos duplicados;
-* domínio com regras de atribuição, resolução e encerramento;
-* respostas de erro padronizadas com Problem Details;
-* tratamento global de exceções;
-* documentação OpenAPI/Swagger;
-* persistência com Entity Framework Core e PostgreSQL;
-* migrations versionadas;
-* testes unitários e de integração;
-* cobertura mínima validada pelo pipeline;
-* execução com Docker e Docker Compose;
-* health check da aplicação;
-* pipeline de CI/CD com GitHub Actions;
-* publicação de imagem Docker no GitHub Container Registry;
-* aplicação automatizada de migrations em produção;
-* deploy automatizado no Render;
-* registro de decisões arquiteturais com ADRs.
-
----
+- criação de chamados;
+- consulta por identificador;
+- listagem paginada;
+- filtros por status, prioridade, solicitante, atendente e período;
+- pesquisa textual e critérios dinâmicos;
+- prevenção de chamados ativos duplicados;
+- regras de atribuição, resolução e encerramento no domínio;
+- Problem Details e tratamento global de exceções;
+- Swagger/OpenAPI;
+- PostgreSQL com Entity Framework Core;
+- migrations versionadas e migration bundle;
+- testes unitários e de integração;
+- cobertura mínima obrigatória;
+- Docker e Docker Compose;
+- health check e identificação do commit implantado;
+- container smoke test com PostgreSQL real no CI;
+- CodeQL, Dependency Review, Trivy e Dependabot;
+- publicação de imagens no GHCR;
+- deploy protegido no Render;
+- versionamento SemVer e changelog automatizado;
+- ADRs e documentação operacional.
 
 ## Arquitetura
 
-O sistema foi estruturado como um **monólito modular em camadas**, inspirado nos princípios de Clean Architecture.
-
-As regras de negócio permanecem isoladas dos detalhes de infraestrutura, banco de dados e protocolo HTTP.
+O sistema está estruturado como monólito modular em camadas, inspirado em Clean Architecture.
 
 ```mermaid
 flowchart LR
@@ -87,7 +76,7 @@ flowchart LR
     INFRASTRUCTURE --> DATABASE[(PostgreSQL)]
 ```
 
-### Direção das dependências
+### Dependências
 
 ```text
 API              → Application
@@ -98,16 +87,12 @@ Application      → Domain
 Domain           → nenhuma camada interna
 ```
 
-### Responsabilidades
-
-| Projeto                               | Responsabilidade                                                    |
-| ------------------------------------- | ------------------------------------------------------------------- |
-| `CorporateServiceDesk.Domain`         | Entidades, enums, invariantes e regras de negócio.                  |
-| `CorporateServiceDesk.Application`    | Casos de uso, comandos, resultados e abstrações.                    |
-| `CorporateServiceDesk.Infrastructure` | Entity Framework Core, PostgreSQL, migrations e repositórios.       |
-| `CorporateServiceDesk.Api`            | Controllers, contratos HTTP, Swagger e composição das dependências. |
-
----
+| Projeto | Responsabilidade |
+| --- | --- |
+| `CorporateServiceDesk.Domain` | Entidades, enums, invariantes e regras de negócio. |
+| `CorporateServiceDesk.Application` | Casos de uso, resultados, validações e abstrações. |
+| `CorporateServiceDesk.Infrastructure` | EF Core, PostgreSQL, migrations e repositórios. |
+| `CorporateServiceDesk.Api` | Controllers, contratos HTTP, Swagger e composição. |
 
 ## Fluxo de criação de chamado
 
@@ -131,11 +116,7 @@ sequenceDiagram
     Controller-->>Client: 201 Created
 ```
 
----
-
 ## Modelo de domínio
-
-A entidade `Ticket` controla as próprias invariantes e transições de estado.
 
 ```mermaid
 stateDiagram-v2
@@ -146,29 +127,28 @@ stateDiagram-v2
     Resolved --> Closed: Close()
 ```
 
-### Regras principais
+Regras principais:
 
-* todo chamado deve possuir título, descrição e solicitante;
-* o título é normalizado e limitado a 160 caracteres;
-* a descrição é limitada a 4.000 caracteres;
-* um chamado é criado com status `Open`;
-* a atribuição altera o status para `InProgress`;
-* apenas chamados em atendimento podem ser resolvidos;
-* apenas chamados resolvidos podem ser encerrados;
-* chamados ativos duplicados são bloqueados;
-* datas são armazenadas em UTC.
+- título, descrição e solicitante são obrigatórios;
+- título limitado a 160 caracteres;
+- descrição limitada a 4.000 caracteres;
+- ticket nasce como `Open`;
+- atribuição altera para `InProgress`;
+- somente ticket em atendimento pode ser resolvido;
+- somente ticket resolvido pode ser encerrado;
+- tickets ativos duplicados são bloqueados;
+- datas são persistidas em UTC.
 
----
+## Endpoints
 
-## Endpoints disponíveis
-
-| Método | Rota                  | Descrição                               |
-| ------ | --------------------- | --------------------------------------- |
-| `POST` | `/api/tickets`        | Cria um chamado.                        |
-| `GET`  | `/api/tickets`        | Lista chamados com paginação e filtros. |
-| `POST` | `/api/tickets/search` | Executa uma pesquisa avançada.          |
-| `GET`  | `/api/tickets/{id}`   | Consulta um chamado pelo identificador. |
-| `GET`  | `/health`             | Retorna o estado da aplicação.          |
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `POST` | `/api/tickets` | Cria um chamado. |
+| `GET` | `/api/tickets` | Lista com paginação e filtros. |
+| `POST` | `/api/tickets/search` | Pesquisa avançada. |
+| `GET` | `/api/tickets/{id}` | Consulta por identificador. |
+| `GET` | `/health` | Estado, versão e commit da aplicação. |
+| `GET` | `/version` | Versão, commit e ambiente implantados. |
 
 ### Criar chamado
 
@@ -182,13 +162,6 @@ Content-Type: application/json
   "requesterId": "7f3d9bf7-f7d8-49cc-a9d0-44b5c27f3ac4",
   "priority": "High"
 }
-```
-
-Resposta esperada:
-
-```http
-HTTP/1.1 201 Created
-Location: /api/tickets/4a032379-288d-4859-a105-0e15a763728b
 ```
 
 ### Listar chamados
@@ -216,89 +189,44 @@ Content-Type: application/json
       "operator": "Equals",
       "value": "Open",
       "logicalOperator": "And"
-    },
-    {
-      "column": "Title",
-      "operator": "Contains",
-      "value": "VPN",
-      "logicalOperator": "And"
     }
   ]
 }
 ```
 
-A documentação completa dos contratos está disponível no Swagger.
-
----
-
 ## Tecnologias
 
-| Categoria          | Tecnologia                            |
-| ------------------ | ------------------------------------- |
-| Linguagem          | C#                                    |
-| Runtime            | .NET 8                                |
-| API                | ASP.NET Core Web API                  |
-| Persistência       | Entity Framework Core                 |
-| Banco de dados     | PostgreSQL 16                         |
-| Documentação       | Swagger e OpenAPI                     |
-| Testes             | xUnit, Moq, Coverlet e Testcontainers |
-| Containers         | Docker e Docker Compose               |
-| CI/CD              | GitHub Actions                        |
-| Container Registry | GitHub Container Registry             |
-| Hospedagem         | Render                                |
-| IDE                | Visual Studio 2022                    |
+| Categoria | Tecnologia |
+| --- | --- |
+| Linguagem | C# |
+| Runtime | .NET 8 |
+| API | ASP.NET Core Web API |
+| Persistência | Entity Framework Core |
+| Banco | PostgreSQL 16 |
+| Testes | xUnit, Moq, Coverlet e Testcontainers |
+| Containers | Docker e Docker Compose |
+| CI/CD | GitHub Actions |
+| Segurança | CodeQL, Dependency Review e Trivy |
+| Dependências | Dependabot |
+| Versionamento | Release Please e SemVer |
+| Registry | GitHub Container Registry |
+| Hospedagem | Render |
 
----
-
-## Padrões e práticas aplicadas
-
-### Rich Domain Model
-
-A entidade `Ticket` concentra regras e transições de estado, evitando que o domínio se torne apenas um conjunto de propriedades.
-
-### Use Cases
-
-Cada operação da aplicação é representada por um caso de uso dedicado. Os Controllers permanecem responsáveis apenas pelo protocolo HTTP.
-
-### Repository
-
-A camada Application declara as abstrações de persistência, enquanto a Infrastructure fornece as implementações com Entity Framework Core.
-
-### Unit of Work
-
-A confirmação das alterações é controlada por uma abstração própria, implementada pelo `ApplicationDbContext`.
-
-### Result Pattern
-
-Os casos de uso retornam resultados explícitos, facilitando o mapeamento de sucesso, validação, conflito e recurso não encontrado.
-
-### Problem Details
-
-Erros são convertidos em respostas HTTP padronizadas seguindo o formato Problem Details.
-
-### Dependency Injection
-
-Casos de uso, repositórios, banco de dados e serviços são registrados no ponto de composição da API.
-
-### TimeProvider
-
-Operações dependentes de data e hora utilizam `TimeProvider`, permitindo testes determinísticos.
-
----
-
-## Estrutura do repositório
+## Estrutura
 
 ```text
 CorporateServiceDesk/
 ├── .github/
-│   └── workflows/
-│       └── ci.yml
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   ├── release.yml
+│   │   └── security.yml
+│   ├── dependabot.yml
+│   ├── CODEOWNERS
+│   └── pull_request_template.md
 ├── docs/
 │   ├── adr/
-│   ├── 01-visao-do-produto.md
-│   ├── 02-requisitos-do-mvp.md
-│   ├── 03-matriz-de-permissoes.md
-│   └── 04-user-stories.md
+│   └── ci-cd/
 ├── src/
 │   ├── CorporateServiceDesk.Api/
 │   ├── CorporateServiceDesk.Application/
@@ -309,284 +237,209 @@ CorporateServiceDesk/
 │   ├── CorporateServiceDesk.Application.UnitTests/
 │   └── CorporateServiceDesk.IntegrationTests/
 ├── .env.example
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── CorporateServiceDesk.sln
 ├── docker-compose.yml
+├── release-please-config.json
 └── README.md
 ```
 
----
+## Executar com Docker
 
-## Como executar com Docker
+Pré-requisitos:
 
-### Pré-requisitos
-
-* Docker Desktop;
-* Docker Compose;
-* Git.
-
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/Peterson-Benhame/CorporateServiceDesk.git
-cd CorporateServiceDesk
-```
-
-### 2. Criar o arquivo de ambiente
-
-No Windows PowerShell:
+- Docker Desktop;
+- Docker Compose;
+- Git.
 
 ```powershell
+git clone https://github.com/Peterson-Benhame/CorporateServiceDesk.git
+cd CorporateServiceDesk
 Copy-Item .env.example .env
-```
-
-No Linux ou macOS:
-
-```bash
-cp .env.example .env
-```
-
-Altere a senha presente no arquivo `.env` antes de iniciar os containers.
-
-### 3. Iniciar o PostgreSQL
-
-```bash
-docker compose -f docker-compose.yml up -d postgres
-```
-
-### 4. Aplicar as migrations
-
-```bash
-docker compose -f docker-compose.yml --profile tools run --rm migrations "dotnet tool restore && dotnet ef database update --project src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj --startup-project src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj --context ApplicationDbContext"
-```
-
-### 5. Iniciar a API
-
-```bash
 docker compose -f docker-compose.yml up --build -d api
 ```
 
-### 6. Acessar a aplicação
+O entrypoint da imagem aplica as migrations pendentes antes de iniciar a API.
+
+Acesse:
 
 ```text
 Swagger: http://localhost:8080/swagger
 Health:  http://localhost:8080/health
+Version: http://localhost:8080/version
 ```
 
-### Encerrar os containers
+Encerrar:
 
-```bash
+```powershell
 docker compose -f docker-compose.yml down
 ```
 
-Para remover também o volume do PostgreSQL:
+Remover também o volume local:
 
-```bash
+```powershell
 docker compose -f docker-compose.yml down -v
 ```
 
----
+## Migrations locais
 
-## Como executar localmente
-
-### Pré-requisitos
-
-* .NET 8 SDK;
-* PostgreSQL;
-* Git.
-
-### 1. Restaurar as ferramentas locais
-
-```bash
-dotnet tool restore
-```
-
-### 2. Configurar a connection string
+Criar:
 
 ```powershell
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=corporate_service_desk;Username=postgres;Password=SUA_SENHA" --project src/CorporateServiceDesk.Api
+docker compose -f docker-compose.yml --profile tools run --rm migrations "dotnet tool restore && dotnet ef migrations add NomeDaMigration --project src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj --startup-project src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj --context ApplicationDbContext"
 ```
 
-### 3. Restaurar e compilar
+Aplicar no PostgreSQL local:
 
-```bash
-dotnet restore
-dotnet build
+```powershell
+docker compose -f docker-compose.yml --profile tools run --rm migrations "dotnet tool restore && dotnet ef database update --project src/CorporateServiceDesk.Infrastructure/CorporateServiceDesk.Infrastructure.csproj --startup-project src/CorporateServiceDesk.Api/CorporateServiceDesk.Api.csproj --context ApplicationDbContext"
 ```
 
-### 4. Aplicar as migrations
-
-```bash
-dotnet ef database update --project src/CorporateServiceDesk.Infrastructure --startup-project src/CorporateServiceDesk.Api --context ApplicationDbContext
-```
-
-### 5. Executar a API
-
-```bash
-dotnet run --project src/CorporateServiceDesk.Api
-```
-
-O endereço utilizado localmente será exibido no terminal durante a inicialização.
-
----
+O desenvolvedor não recebe acesso ao banco de produção. No Render, o migration bundle usa a connection string injetada diretamente no container.
 
 ## Testes
 
-Para executar todos os testes:
-
-```bash
-dotnet test
+```powershell
+dotnet tool restore
+dotnet restore CorporateServiceDesk.sln --locked-mode
+dotnet build CorporateServiceDesk.sln --configuration Release --no-restore
+dotnet test CorporateServiceDesk.sln --configuration Release --no-build
 ```
 
-Os testes estão separados por responsabilidade:
+Os testes de integração usam Testcontainers e exigem Docker.
 
-* testes de domínio;
-* testes dos casos de uso;
-* testes de integração com PostgreSQL;
-* validação das regras de persistência;
-* testes de paginação e filtros;
-* testes das transições de estado do chamado.
+Cobertura mínima:
 
-Os testes de integração utilizam Testcontainers e exigem Docker em execução.
+| Métrica | Mínimo |
+| --- | --- |
+| Linhas | 60% |
+| Branches | 40% |
 
-### Cobertura mínima
-
-O pipeline bloqueia a entrega quando a cobertura fica abaixo de:
-
-| Métrica  | Cobertura mínima |
-| -------- | ---------------- |
-| Linhas   | 60%              |
-| Branches | 40%              |
-
-As migrations do Entity Framework não são consideradas no cálculo da cobertura.
-
----
+Migrations do EF não entram no cálculo.
 
 ## CI/CD
 
-O GitHub Actions executa automaticamente:
+```mermaid
+flowchart TD
+    PUSH[Push ou Pull Request] --> BUILD[Restore, build e testes]
+    BUILD --> COVERAGE[Cobertura mínima]
+    COVERAGE --> EF[Modelo EF atualizado]
+    EF --> IMAGE[Build da imagem final]
+    IMAGE --> SMOKE[PostgreSQL temporário + container real]
+    SMOKE --> MIGRATION[Migration bundle aplicado]
+    MIGRATION --> SECURITY[Trivy]
+    SECURITY --> GHCR[Publicação no GHCR]
+    GHCR --> APPROVAL[Aprovação production]
+    APPROVAL --> RENDER[Render recebe o commit exato]
+    RENDER --> VERIFY[/version + /health com o mesmo SHA]
+```
 
-1. restauração de dependências em modo bloqueado;
-2. compilação da solução em `Release`;
-3. execução dos testes automatizados;
-4. geração do relatório de cobertura;
-5. validação dos limites mínimos de cobertura;
-6. verificação de alterações pendentes no modelo do Entity Framework;
-7. geração de um migration bundle;
-8. construção da imagem Docker;
-9. publicação da imagem no GitHub Container Registry;
-10. aplicação das migrations no banco de produção;
-11. deploy da aplicação no Render;
-12. validação do endpoint `/health`.
+O GitHub Actions não acessa o PostgreSQL de produção. A migration roda dentro da imagem no Render.
 
-O deploy de produção é executado a partir da branch `master` e utiliza um ambiente protegido no GitHub.
+O smoke test do CI valida exatamente:
 
----
+- `docker-entrypoint.sh`;
+- `efbundle`;
+- criação de tabelas;
+- registro em `__EFMigrationsHistory`;
+- inicialização da API;
+- `/health`;
+- `/version`;
+- SHA da imagem.
 
 ## Segurança
 
-### Práticas implementadas
+Controles implementados:
 
-* secrets fora do código-fonte;
-* suporte ao Secret Manager;
-* `.env` ignorado pelo Git;
-* connection string fornecida por variável de ambiente;
-* validação de entrada na API e no domínio;
-* enums serializados como texto;
-* tratamento global de exceções;
-* respostas de erro padronizadas;
-* execução do container com usuário não privilegiado;
-* ambiente de produção protegido no GitHub;
-* credenciais de produção armazenadas como GitHub Secrets.
+- CodeQL para C#;
+- Dependency Review em PRs;
+- Trivy no repositório e na imagem;
+- bloqueio de secrets detectados;
+- bloqueio de vulnerabilidades críticas corrigíveis;
+- Dependabot para NuGet, Actions e Docker;
+- container executado sem usuário root;
+- secrets fora do código;
+- ambiente `production` protegido;
+- Secret Scanning e Push Protection do GitHub.
 
-### Próximas implementações
+Consulte [SECURITY.md](SECURITY.md).
 
-* autenticação com e-mail e senha;
-* hash seguro de senhas;
-* geração e validação de JWT;
-* refresh tokens;
-* perfis e permissões;
-* autorização baseada em policies;
-* gerenciamento de múltiplas empresas;
-* isolamento dos dados por empresa.
+## Releases
 
----
+O Release Please cria changelog, tag e GitHub Release com base em Conventional Commits.
 
-## Documentação complementar
+Exemplos:
 
-| Documento                         | Conteúdo                                    |
-| --------------------------------- | ------------------------------------------- |
-| `docs/01-visao-do-produto.md`     | Contexto, objetivos e atores.               |
-| `docs/02-requisitos-do-mvp.md`    | Requisitos funcionais e não funcionais.     |
-| `docs/03-matriz-de-permissoes.md` | Permissões planejadas por perfil.           |
-| `docs/04-user-stories.md`         | Histórias de usuário e critérios de aceite. |
-| `docs/adr`                        | Decisões arquiteturais do projeto.          |
+```text
+fix: correct ticket ordering
+feat: add ticket assignment
+feat!: change public ticket contract
+```
 
----
+As imagens recebem tags de commit e SemVer.
+
+Consulte [docs/ci-cd/releases.md](docs/ci-cd/releases.md).
+
+## Documentação
+
+| Documento | Conteúdo |
+| --- | --- |
+| `docs/01-visao-do-produto.md` | Contexto, objetivos e atores. |
+| `docs/02-requisitos-do-mvp.md` | Requisitos funcionais e não funcionais. |
+| `docs/03-matriz-de-permissoes.md` | Permissões planejadas. |
+| `docs/04-user-stories.md` | Histórias e critérios de aceite. |
+| `docs/adr` | Decisões arquiteturais. |
+| `docs/ci-cd/branch-protection.md` | Proteção da master. |
+| `docs/ci-cd/render-production.md` | Deploy e migrations no Render. |
+| `docs/ci-cd/releases.md` | SemVer e releases. |
 
 ## Roadmap
 
 ### Chamados
 
-* [x] modelar o domínio de chamados;
-* [x] criar chamados;
-* [x] consultar chamado por identificador;
-* [x] listar chamados com paginação;
-* [x] implementar filtros tipados;
-* [x] implementar pesquisa avançada;
-* [x] impedir chamados ativos duplicados;
-* [ ] criar endpoint de atribuição;
-* [ ] criar endpoint de resolução;
-* [ ] criar endpoint de encerramento;
-* [ ] adicionar comentários;
-* [ ] disponibilizar histórico completo do chamado.
+- [x] domínio de chamados;
+- [x] criação e consulta;
+- [x] paginação e filtros;
+- [x] pesquisa avançada;
+- [x] prevenção de duplicidade;
+- [ ] atribuição;
+- [ ] resolução;
+- [ ] encerramento;
+- [ ] comentários;
+- [ ] histórico completo.
 
 ### Usuários e empresas
 
-* [ ] cadastrar usuários;
-* [ ] implementar login;
-* [ ] implementar autenticação JWT;
-* [ ] implementar refresh tokens;
-* [ ] cadastrar empresas;
-* [ ] permitir que um usuário participe de várias empresas;
-* [ ] implementar perfis e permissões por empresa;
-* [ ] isolar os dados de cada empresa.
+- [ ] cadastro e login;
+- [ ] JWT e refresh token;
+- [ ] empresas;
+- [ ] vínculo usuário-empresa;
+- [ ] perfis e permissões;
+- [ ] isolamento por empresa.
 
 ### Operação e qualidade
 
-* [x] testes unitários;
-* [x] testes de integração;
-* [x] cobertura mínima no pipeline;
-* [x] Problem Details;
-* [x] tratamento global de exceções;
-* [x] health check;
-* [x] Docker;
-* [x] pipeline de CI/CD;
-* [x] migrations automatizadas;
-* [x] publicação no GHCR;
-* [x] deploy no Render;
-* [ ] logs estruturados;
-* [ ] Correlation ID;
-* [ ] métricas e observabilidade.
-
----
-
-## Decisões técnicas
-
-* **Monólito modular:** reduz a complexidade operacional sem abandonar a separação de responsabilidades.
-* **Domínio independente:** mantém as regras de negócio isoladas do ASP.NET Core e do Entity Framework.
-* **PostgreSQL:** oferece persistência relacional robusta e suporte a migrations.
-* **Sem MediatR:** os casos de uso são resolvidos diretamente pela injeção de dependência.
-* **Docker desde o início:** reduz diferenças entre desenvolvimento, integração e produção.
-* **Migration bundle:** permite aplicar migrations em produção sem instalar o SDK completo no ambiente.
-* **Cobertura mínima:** impede que mudanças reduzam a qualidade dos testes abaixo dos limites definidos.
-* **Deploy protegido:** migrations e publicação em produção dependem do ambiente protegido do GitHub.
-
----
+- [x] testes unitários e de integração;
+- [x] cobertura mínima;
+- [x] health e version endpoint;
+- [x] Docker;
+- [x] migrations automatizadas no container;
+- [x] container smoke test;
+- [x] GHCR;
+- [x] deploy no Render;
+- [x] CodeQL, Trivy e Dependabot;
+- [x] SemVer e changelog automático;
+- [ ] logs estruturados;
+- [ ] Correlation ID;
+- [ ] métricas e observabilidade;
+- [ ] ambiente de staging.
 
 ## Autor
 
 **Peterson Benhame**
 
-Desenvolvedor de Software Sênior com experiência em C#, .NET, ASP.NET Core, APIs REST, sistemas corporativos, arquitetura de software e integrações.
+Desenvolvedor de Software Sênior com experiência em C#, .NET, ASP.NET Core, APIs REST, sistemas corporativos, arquitetura e integrações.
 
 [GitHub](https://github.com/Peterson-Benhame)

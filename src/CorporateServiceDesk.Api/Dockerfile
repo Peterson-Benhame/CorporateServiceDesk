@@ -79,6 +79,17 @@ RUN dotnet tool run dotnet-ef migrations bundle \
 # Imagem final de produção.
 FROM base AS final
 
+ARG BUILD_REVISION=local
+ARG BUILD_VERSION=0.0.0-local
+
+LABEL org.opencontainers.image.title="Corporate Service Desk API" \
+      org.opencontainers.image.description="API REST para gerenciamento de chamados corporativos." \
+      org.opencontainers.image.source="https://github.com/Peterson-Benhame/CorporateServiceDesk" \
+      org.opencontainers.image.revision="${BUILD_REVISION}" \
+      org.opencontainers.image.version="${BUILD_VERSION}"
+
+ENV APP_VERSION="${BUILD_REVISION}"
+
 WORKDIR /app
 
 COPY --from=publish /app/publish .
