@@ -177,7 +177,7 @@ jobs:
 
       - name: Validate pending model changes
         run: |
-          dotnet ef migrations has-pending-model-changes \
+          dotnet-ef migrations has-pending-model-changes \
             --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
             --startup-project "${{ env.STARTUP_PROJECT }}" \
             --context "${{ env.DB_CONTEXT }}" \
@@ -189,7 +189,7 @@ jobs:
 
       - name: Generate migration bundle
         run: |
-          dotnet ef migrations bundle \
+          dotnet-ef migrations bundle \
             --project "${{ env.INFRASTRUCTURE_PROJECT }}" \
             --startup-project "${{ env.STARTUP_PROJECT }}" \
             --context "${{ env.DB_CONTEXT }}" \
