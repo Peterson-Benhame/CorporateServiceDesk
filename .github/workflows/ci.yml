@@ -240,6 +240,7 @@ jobs:
 
     env:
       MIGRATION_CONNECTION_STRING: ${{ secrets.PRODUCTION_DATABASE_CONNECTION }}
+      ConnectionStrings__DefaultConnection: ${{ secrets.PRODUCTION_DATABASE_CONNECTION }}
 
     steps:
       - name: Download migration bundle
