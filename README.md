@@ -1,7 +1,6 @@
 # Corporate Service Desk API
 
 [![CI/CD](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/ci.yml)
-[![Security](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/security.yml/badge.svg)](https://github.com/Peterson-Benhame/CorporateServiceDesk/actions/workflows/security.yml)
 [![Release](https://img.shields.io/github/v/release/Peterson-Benhame/CorporateServiceDesk?display_name=tag&sort=semver)](https://github.com/Peterson-Benhame/CorporateServiceDesk/releases)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1)
